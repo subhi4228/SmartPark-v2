@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 360" width="100%" height="100%">
+  <rect width="850" height="360" fill="#0f172a" rx="10"/>
+  <text x="425" y="30" fill="#38bdf8" font-size="18" font-weight="bold" text-anchor="middle" font-family="Segoe UI">5-Stage Pipeline Timing: 10 Cycles, 1 RAW Stall Bubble, Forwarding</text>
+
+  <g font-family="Segoe UI, monospace" font-size="11" text-anchor="middle">
+    <!-- Header -->
+    <text x="90" y="70" fill="#94a3b8" font-weight="bold">Instruction</text>
+    <text x="210" y="70" fill="#94a3b8">C1</text><text x="260" y="70" fill="#94a3b8">C2</text>
+    <text x="310" y="70" fill="#94a3b8">C3</text><text x="360" y="70" fill="#94a3b8">C4</text>
+    <text x="410" y="70" fill="#94a3b8">C5</text><text x="460" y="70" fill="#94a3b8">C6</text>
+    <text x="510" y="70" fill="#94a3b8">C7</text><text x="560" y="70" fill="#94a3b8">C8</text>
+    <text x="610" y="70" fill="#94a3b8">C9</text><text x="660" y="70" fill="#94a3b8">C10</text>
+
+    <!-- I1 -->
+    <text x="90" y="110" fill="#f8fafc" text-anchor="start">I1: LD R2, 8(R11)</text>
+    <rect x="190" y="95" width="40" height="24" fill="#1e3a8a" rx="3"/><text x="210" y="112" fill="#fff">IF</text>
+    <rect x="240" y="95" width="40" height="24" fill="#581c87" rx="3"/><text x="260" y="112" fill="#fff">ID</text>
+    <rect x="290" y="95" width="40" height="24" fill="#065f46" rx="3"/><text x="310" y="112" fill="#fff">EX</text>
+    <rect x="340" y="95" width="40" height="24" fill="#92400e" rx="3"/><text x="360" y="112" fill="#fff">MEM</text>
+    <rect x="390" y="95" width="40" height="24" fill="#831843" rx="3"/><text x="410" y="112" fill="#fff">WB</text>
+
+    <!-- I2 (With Stall) -->
+    <text x="90" y="150" fill="#f8fafc" text-anchor="start">I2: ADD R8, R8, R2</text>
+    <rect x="240" y="135" width="40" height="24" fill="#1e3a8a" rx="3"/><text x="260" y="152" fill="#fff">IF</text>
+    <rect x="290" y="135" width="40" height="24" fill="#581c87" rx="3"/><text x="310" y="152" fill="#fff">ID</text>
+    <rect x="340" y="135" width="40" height="24" fill="#7f1d1d" rx="3"/><text x="360" y="152" fill="#fca5a5" font-weight="bold">STALL</text>
+    <rect x="390" y="135" width="40" height="24" fill="#065f46" rx="3"/><text x="410" y="152" fill="#fff">EX</text>
+    <rect x="440" y="135" width="40" height="24" fill="#92400e" rx="3"/><text x="460" y="152" fill="#fff">MEM</text>
+    <rect x="490" y="135" width="40" height="24" fill="#831843" rx="3"/><text x="510" y="152" fill="#fff">WB</text>
+
+    <!-- I3 -->
+    <text x="90" y="190" fill="#f8fafc" text-anchor="start">I3: LD R1, 16(R11)</text>
+    <rect x="290" y="175" width="40" height="24" fill="#1e3a8a" rx="3"/><text x="310" y="192" fill="#fff">IF</text>
+    <rect x="340" y="175" width="40" height="24" fill="#7f1d1d" rx="3"/><text x="360" y="192" fill="#fca5a5">STALL</text>
+    <rect x="390" y="175" width="40" height="24" fill="#581c87" rx="3"/><text x="410" y="192" fill="#fff">ID</text>
+    <rect x="440" y="175" width="40" height="24" fill="#065f46" rx="3"/><text x="460" y="192" fill="#fff">EX</text>
+    <rect x="490" y="175" width="40" height="24" fill="#92400e" rx="3"/><text x="510" y="192" fill="#fff">MEM</text>
+    <rect x="540" y="175" width="40" height="24" fill="#831843" rx="3"/><text x="560" y="192" fill="#fff">WB</text>
+
+    <!-- I4 -->
+    <text x="90" y="230" fill="#f8fafc" text-anchor="start">I4: LD R2, 20(R11)</text>
+    <rect x="390" y="215" width="40" height="24" fill="#1e3a8a" rx="3"/><text x="410" y="232" fill="#fff">IF</text>
+    <rect x="440" y="215" width="40" height="24" fill="#581c87" rx="3"/><text x="460" y="232" fill="#fff">ID</text>
+    <rect x="490" y="215" width="40" height="24" fill="#065f46" rx="3"/><text x="510" y="232" fill="#fff">EX</text>
+    <rect x="540" y="215" width="40" height="24" fill="#92400e" rx="3"/><text x="560" y="232" fill="#fff">MEM</text>
+    <rect x="590" y="215" width="40" height="24" fill="#831843" rx="3"/><text x="610" y="232" fill="#fff">WB</text>
+
+    <!-- I5 -->
+    <text x="90" y="270" fill="#f8fafc" text-anchor="start">I5: ADD R7, R7, R1</text>
+    <rect x="440" y="255" width="40" height="24" fill="#1e3a8a" rx="3"/><text x="460" y="272" fill="#fff">IF</text>
+    <rect x="490" y="255" width="40" height="24" fill="#581c87" rx="3"/><text x="510" y="272" fill="#fff">ID</text>
+    <rect x="540" y="255" width="40" height="24" fill="#065f46" rx="3"/><text x="560" y="272" fill="#fff">EX</text>
+    <rect x="590" y="255" width="40" height="24" fill="#92400e" rx="3"/><text x="610" y="272" fill="#fff">MEM</text>
+    <rect x="640" y="255" width="40" height="24" fill="#831843" rx="3"/><text x="660" y="272" fill="#fff">WB</text>
+  </g>
+
+  <!-- Forwarding Arrow -->
+  <path d="M 360 119 L 360 135 L 400 135 L 400 142" stroke="#22c55e" stroke-width="2" fill="none"/>
+  <text x="380" y="130" fill="#22c55e" font-size="9" font-family="Segoe UI">Forwarding (MEM -> EX)</text>
+
+  <text x="425" y="325" fill="#f8fafc" font-size="12" text-anchor="middle" font-family="Segoe UI">
+    Total Cycles = 10 &bull; Total Instructions = 5 &bull; CPI = 2.0 &bull; Pipelined Speed-up = 2.5x vs Unpipelined (25 cycles)
+  </text>
+</svg>

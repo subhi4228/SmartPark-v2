@@ -1,0 +1,5 @@
+﻿ride_id,ride_name,capacity,unit_price,min_age
+101,Ferris Wheel,20,100,5
+102,Roller Coaster,15,200,10
+103,Water Ride,12,150,6
+104,Go-Kart,10,120,12

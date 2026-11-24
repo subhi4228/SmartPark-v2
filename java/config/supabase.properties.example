@@ -1,0 +1,6 @@
+# Supabase Configuration Example
+# Copy this file to supabase.properties and fill in your Supabase project credentials.
+# Note: Keep supabase.properties private and do not commit to public repositories.
+
+supabase.url=https://your-project-id.supabase.co
+supabase.key=your-anon-key-here

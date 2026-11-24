@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Smart Amusement Park - COA Task 4 Processor Simulator</title>
+<style>
+  :root {
+    --bg-primary: #0f172a;
+    --bg-card: #1e293b;
+    --bg-header: #0b1120;
+    --accent-blue: #38bdf8;
+    --accent-green: #22c55e;
+    --accent-amber: #f59e0b;
+    --accent-red: #ef4444;
+    --accent-purple: #a855f7;
+    --text-primary: #f8fafc;
+    --text-muted: #94a3b8;
+    --border-color: #334155;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    padding: 16px;
+    font-size: 13px;
+  }
+  header {
+    background: var(--bg-header);
+    padding: 14px 20px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--border-color);
+  }
+  header h1 { font-size: 18px; color: var(--accent-blue); }
+  header p { font-size: 12px; color: var(--text-muted); }
+  .badge {
+    background: var(--accent-green);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-weight: bold;
+    font-size: 11px;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: 320px 1fr 340px;
+    gap: 14px;
+  }
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .card h2 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--accent-blue);
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .btn {
+    background: var(--accent-blue);
+    color: #0f172a;
+    border: none;
+    padding: 7px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 12px;
+    transition: 0.2s;
+  }
+  .btn:hover { opacity: 0.9; }
+  .btn-green { background: var(--accent-green); color: white; }
+  .btn-amber { background: var(--accent-amber); color: #0f172a; }
+  .btn-red { background: var(--accent-red); color: white; }
+  .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+
+  select, textarea {
+    width: 100%;
+    background: #0f172a;
+    color: #fff;
+    border: 1px solid var(--border-color);
+    padding: 8px;
+    border-radius: 6px;
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+  }
+  textarea { height: 130px; resize: none; margin-top: 8px; }
+
+  /* Register & Memory Tables */
+  .table-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .reg-box {
+    background: #0f172a;
+    border: 1px solid var(--border-color);
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-family: 'Consolas', monospace;
+  }
+  .reg-box.changed {
+    border-color: var(--accent-amber);
+    background: #451a03;
+  }
+  .reg-name { color: var(--text-muted); font-size: 11px; }
+  .reg-val { font-size: 12px; font-weight: bold; color: var(--accent-blue); }
+
+  /* Control Signal Matrix */
+  .signals-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .sig-pill {
+    background: #0f172a;
+    padding: 5px;
+    text-align: center;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+  }
+  .sig-name { font-size: 10px; color: var(--text-muted); }
+  .sig-val { font-size: 12px; font-weight: bold; color: var(--accent-green); }
+
+  /* ALU View */
+  .alu-display {
+    background: #0f172a;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    text-align: center;
+  }
+  .alu-item { background: #1e293b; padding: 6px; border-radius: 4px; }
+  .alu-val { font-size: 14px; font-weight: bold; color: var(--accent-purple); font-family: monospace; }
+
+  /* Pipeline Diagram */
+  .pipeline-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+    margin-top: 8px;
+  }
+  .pipeline-table th, .pipeline-table td {
+    border: 1px solid var(--border-color);
+    padding: 5px 6px;
+    text-align: center;
+  }
+  .pipeline-table th { background: #0f172a; color: var(--text-muted); }
+  .stage-if  { background: #1e3a8a; color: #fff; font-weight: bold; }
+  .stage-id  { background: #581c87; color: #fff; font-weight: bold; }
+  .stage-ex  { background: #065f46; color: #fff; font-weight: bold; }
+  .stage-mem { background: #92400e; color: #fff; font-weight: bold; }
+  .stage-wb  { background: #831843; color: #fff; font-weight: bold; }
+  .stage-stall { background: #7f1d1d; color: #fca5a5; font-weight: bold; }
+
+  .log-console {
+    background: #090d16;
+    border: 1px solid var(--border-color);
+    color: #38bdf8;
+    font-family: 'Consolas', monospace;
+    font-size: 11px;
+    height: 120px;
+    overflow-y: auto;
+    padding: 8px;
+    border-radius: 6px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>SMART AMUSEMENT PARK &bull; COA TASK 4 CPU SIMULATOR</h1>
+    <p>32-bit RISC Datapath &bull; Control Unit &bull; Microprogram ROM &bull; 5-Stage Pipelining</p>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center;">
+    <span class="badge" id="cpiBadge">CPI: 2.0 | Speed-up: 2.5x</span>
+    <span class="badge" style="background:#3b82f6;">Cycles: <span id="cycleCount">0</span></span>
+  </div>
+</header>
+
+<div class="grid-container">
+
+  <!-- LEFT: Program Loader & Memory -->
+  <div>
+    <div class="card">
+      <h2>Program Selector</h2>
+      <select id="progSelect" onchange="loadPresetProgram()">
+        <option value="f1">F1: Ticket Fare Calculation (MUL R3,R1,R2 -> 300)</option>
+        <option value="f2">F2: Seat Availability Verification (Accept / Reject)</option>
+        <option value="f3" selected>F3: Multi-Booking Accumulator (1300/8/23)</option>
+        <option value="hazard">Hazard Slice: I1-I5 Pipeline Demonstration</option>
+      </select>
+      <textarea id="asmSource" readonly></textarea>
+      <div class="btn-group">
+        <button class="btn btn-green" onclick="stepInstruction()">Step (F10)</button>
+        <button class="btn btn-amber" onclick="runAll()">Run All</button>
+        <button class="btn btn-red" onclick="resetSim()">Reset</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Data Memory (0x1000 - 0x103C)</h2>
+      <div id="memView" style="font-family:Consolas,monospace; font-size:11px; max-height:160px; overflow-y:auto;"></div>
+    </div>
+  </div>
+
+  <!-- CENTER: Datapath, ALU & Control Unit -->
+  <div>
+    <div class="card">
+      <h2>Current Instruction Decode & Control Signals</h2>
+      <div style="background:#0f172a; padding:8px 12px; border-radius:6px; font-family:Consolas,monospace; font-size:13px; color:var(--accent-blue);" id="curInstText">
+        PC: 0x0000 | RAW: 0x00000000 | --
+      </div>
+      <div class="signals-grid">
+        <div class="sig-pill"><div class="sig-name">RegDst</div><div class="sig-val" id="sigRegDst">-</div></div>
+        <div class="sig-pill"><div class="sig-name">ALUSrc</div><div class="sig-val" id="sigALUSrc">-</div></div>
+        <div class="sig-pill"><div class="sig-name">MemtoReg</div><div class="sig-val" id="sigMemToReg">-</div></div>
+        <div class="sig-pill"><div class="sig-name">RegWrite</div><div class="sig-val" id="sigRegWrite">-</div></div>
+        <div class="sig-pill"><div class="sig-name">MemRead</div><div class="sig-val" id="sigMemRead">-</div></div>
+        <div class="sig-pill"><div class="sig-name">MemWrite</div><div class="sig-val" id="sigMemWrite">-</div></div>
+        <div class="sig-pill"><div class="sig-name">Branch</div><div class="sig-val" id="sigBranch">-</div></div>
+        <div class="sig-pill"><div class="sig-name">ALUOp</div><div class="sig-val" id="sigALUOp">-</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>32-bit Arithmetic Logic Unit (ALU) Status</h2>
+      <div class="alu-display">
+        <div class="alu-item"><div class="sig-name">Operand A</div><div class="alu-val" id="aluA">0</div></div>
+        <div class="alu-item"><div class="sig-name">Operand B</div><div class="alu-val" id="aluB">0</div></div>
+        <div class="alu-item"><div class="sig-name">ALUctl (4-bit)</div><div class="alu-val" id="aluCtl">0010 (ADD)</div></div>
+        <div class="alu-item"><div class="sig-name">ALU Output / Zero Flag</div><div class="alu-val" id="aluRes">0 [Z=1]</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>5-Stage Pipeline Timing Chart (10 Cycles, 1 RAW Stall Bubble)</h2>
+      <table class="pipeline-table">
+        <thead>
+          <tr>
+            <th>Instruction</th>
+            <th>C1</th><th>C2</th><th>C3</th><th>C4</th><th>C5</th><th>C6</th><th>C7</th><th>C8</th><th>C9</th><th>C10</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="text-align:left;">I1: LD R2, 8(R11)</td>
+            <td class="stage-if">IF</td><td class="stage-id">ID</td><td class="stage-ex">EX</td><td class="stage-mem">MEM</td><td class="stage-wb">WB</td>
+            <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td>
+          </tr>
+          <tr>
+            <td style="text-align:left;">I2: ADD R8, R8, R2</td>
+            <td>-</td><td class="stage-if">IF</td><td class="stage-id">ID</td><td class="stage-stall">STALL</td><td class="stage-ex">EX</td><td class="stage-mem">MEM</td><td class="stage-wb">WB</td>
+            <td>-</td><td>-</td><td>-</td>
+          </tr>
+          <tr>
+            <td style="text-align:left;">I3: LD R1, 16(R11)</td>
+            <td>-</td><td>-</td><td class="stage-if">IF</td><td class="stage-stall">STALL</td><td class="stage-id">ID</td><td class="stage-ex">EX</td><td class="stage-mem">MEM</td><td class="stage-wb">WB</td>
+            <td>-</td><td>-</td>
+          </tr>
+          <tr>
+            <td style="text-align:left;">I4: LD R2, 20(R11)</td>
+            <td>-</td><td>-</td><td>-</td><td>-</td><td class="stage-if">IF</td><td class="stage-id">ID</td><td class="stage-ex">EX</td><td class="stage-mem">MEM</td><td class="stage-wb">WB</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td style="text-align:left;">I5: ADD R7, R7, R1</td>
+            <td>-</td><td>-</td><td>-</td><td>-</td><td>-</td><td class="stage-if">IF</td><td class="stage-id">ID</td><td class="stage-ex">EX</td><td class="stage-mem">MEM</td><td class="stage-wb">WB</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- RIGHT: Register File & Execution Log -->
+  <div>
+    <div class="card">
+      <h2>Register File (R0 - R15)</h2>
+      <div class="table-grid" id="regView"></div>
+    </div>
+
+    <div class="card">
+      <h2>Microprogram State & Execution Log</h2>
+      <div class="log-console" id="logConsole"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// Simulator State
+let regs = new Array(16).fill(0);
+let pc = 0;
+let memory = new Array(8192).fill(0);
+let instructions = [];
+let cycles = 0;
+let halted = false;
+
+const PRESETS = {
+  f1: [
+    { asm: "MUL R3, R1, R2", raw: 0x00221818, op:"R", rs:1, rt:2, rd:3, fn:0x18 },
+    { asm: "ST R3, 0(R10)", raw: 0xAD430000, op:"ST", rs:10, rt:3, imm:0 },
+    { asm: "HLT", raw: 0xFC000000, op:"HLT" }
+  ],
+  f2: [
+    { asm: "SUB R4, R1, R2", raw: 0x00222022, op:"R", rs:1, rt:2, rd:4, fn:0x22 },
+    { asm: "SLT R6, R4, R3", raw: 0x0083302A, op:"R", rs:4, rt:3, rd:6, fn:0x2A },
+    { asm: "BNE R6, R0, 3", raw: 0x14C00003, op:"BNE", rs:6, rt:0, imm:3 },
+    { asm: "ADDI R5, R0, 1", raw: 0x20050001, op:"ADDI", rs:0, rt:5, imm:1 },
+    { asm: "JMP 24", raw: 0x08000018, op:"JMP", target:24 },
+    { asm: "ADDI R5, R0, 0", raw: 0x20050000, op:"ADDI", rs:0, rt:5, imm:0 },
+    { asm: "ST R5, 4(R10)", raw: 0xAD450004, op:"ST", rs:10, rt:5, imm:4 },
+    { asm: "HLT", raw: 0xFC000000, op:"HLT" }
+  ],
+  f3: [
+    { asm: "LD R1, 0(R11)", raw: 0x8D610000, op:"LD", rs:11, rt:1, imm:0 },
+    { asm: "LD R2, 4(R11)", raw: 0x8D620004, op:"LD", rs:11, rt:2, imm:4 },
+    { asm: "ADD R7, R7, R1", raw: 0x00E13820, op:"R", rs:7, rt:1, rd:7, fn:0x20 },
+    { asm: "ADD R8, R8, R2", raw: 0x01024020, op:"R", rs:8, rt:2, rd:8, fn:0x20 },
+    { asm: "LD R1, 8(R11)", raw: 0x8D610008, op:"LD", rs:11, rt:1, imm:8 },
+    { asm: "LD R2, 12(R11)", raw: 0x8D62000C, op:"LD", rs:11, rt:2, imm:12 },
+    { asm: "ADD R7, R7, R1", raw: 0x00E13820, op:"R", rs:7, rt:1, rd:7, fn:0x20 },
+    { asm: "ADD R8, R8, R2", raw: 0x01024020, op:"R", rs:8, rt:2, rd:8, fn:0x20 },
+    { asm: "LD R1, 16(R11)", raw: 0x8D610010, op:"LD", rs:11, rt:1, imm:16 },
+    { asm: "LD R2, 20(R11)", raw: 0x8D620014, op:"LD", rs:11, rt:2, imm:20 },
+    { asm: "ADD R7, R7, R1", raw: 0x00E13820, op:"R", rs:7, rt:1, rd:7, fn:0x20 },
+    { asm: "ADD R8, R8, R2", raw: 0x01024020, op:"R", rs:8, rt:2, rd:8, fn:0x20 },
+    { asm: "SUB R9, R12, R8", raw: 0x01884822, op:"R", rs:12, rt:8, rd:9, fn:0x22 },
+    { asm: "ST R7, 32(R11)", raw: 0xAD670020, op:"ST", rs:11, rt:7, imm:32 },
+    { asm: "ST R8, 36(R11)", raw: 0xAD680024, op:"ST", rs:11, rt:8, imm:36 },
+    { asm: "ST R9, 40(R11)", raw: 0xAD690028, op:"ST", rs:11, rt:9, imm:40 },
+    { asm: "HLT", raw: 0xFC000000, op:"HLT" }
+  ],
+  hazard: [
+    { asm: "LD R2, 8(R11)", raw: 0x8D620008, op:"LD", rs:11, rt:2, imm:8 },
+    { asm: "ADD R8, R8, R2", raw: 0x01024020, op:"R", rs:8, rt:2, rd:8, fn:0x20 },
+    { asm: "LD R1, 16(R11)", raw: 0x8D610010, op:"LD", rs:11, rt:1, imm:16 },
+    { asm: "LD R2, 20(R11)", raw: 0x8D620014, op:"LD", rs:11, rt:2, imm:20 },
+    { asm: "ADD R7, R7, R1", raw: 0x00E13820, op:"R", rs:7, rt:1, rd:7, fn:0x20 },
+    { asm: "HLT", raw: 0xFC000000, op:"HLT" }
+  ]
+};
+
+function logMsg(msg) {
+  const c = document.getElementById("logConsole");
+  c.innerHTML += `<div>${msg}</div>`;
+  c.scrollTop = c.scrollHeight;
+}
+
+function writeMem32(addr, val) {
+  memory[addr]   = val & 0xFF;
+  memory[addr+1] = (val >> 8) & 0xFF;
+  memory[addr+2] = (val >> 16) & 0xFF;
+  memory[addr+3] = (val >> 24) & 0xFF;
+}
+
+function readMem32(addr) {
+  return memory[addr] | (memory[addr+1] << 8) | (memory[addr+2] << 16) | (memory[addr+3] << 24);
+}
+
+function renderRegs() {
+  const v = document.getElementById("regView");
+  v.innerHTML = "";
+  for (let i = 0; i < 16; i++) {
+    v.innerHTML += `
+      <div class="reg-box" id="regbox_${i}">
+        <div class="reg-name">R${i}</div>
+        <div class="reg-val">${regs[i]}</div>
+      </div>
+    `;
+  }
+}
+
+function renderMem() {
+  const m = document.getElementById("memView");
+  m.innerHTML = "";
+  for (let a = 0x1000; a <= 0x103C; a += 4) {
+    const val = readMem32(a);
+    m.innerHTML += `<div>0x${a.toString(16).toUpperCase()}: <span style="color:#38bdf8;">${val}</span></div>`;
+  }
+}
+
+function loadPresetProgram() {
+  const key = document.getElementById("progSelect").value;
+  instructions = PRESETS[key];
+  document.getElementById("asmSource").value = instructions.map(x => x.asm).join("\n");
+  resetSim();
+}
+
+function resetSim() {
+  regs.fill(0);
+  memory.fill(0);
+  pc = 0;
+  cycles = 0;
+  halted = false;
+  document.getElementById("cycleCount").innerText = "0";
+  document.getElementById("curInstText").innerText = "PC: 0x0000 | RAW: 0x00000000 | Ready";
+  document.getElementById("logConsole").innerHTML = "";
+
+  const key = document.getElementById("progSelect").value;
+  if (key === "f1") {
+    regs[1] = 100; // Price
+    regs[2] = 3;   // Group
+    regs[10] = 0x1000;
+  } else if (key === "f2") {
+    regs[1] = 20;  // Capacity
+    regs[2] = 18;  // Booked
+    regs[3] = 2;   // Requested
+    regs[10] = 0x1000;
+  } else if (key === "f3" || key === "hazard") {
+    regs[11] = 0x1010;
+    regs[12] = 31;
+    writeMem32(0x1010, 300);
+    writeMem32(0x1014, 3);
+    writeMem32(0x1018, 400);
+    writeMem32(0x101C, 2);
+    writeMem32(0x1020, 600);
+    writeMem32(0x1024, 3);
+  }
+  renderRegs();
+  renderMem();
+  logMsg("[INIT] Processor initialized for preset: " + key.toUpperCase());
+}
+
+function stepInstruction() {
+  if (halted) {
+    logMsg("[HALTED] Execution ended. Reset to re-run.");
+    return;
+  }
+  const idx = pc / 4;
+  if (idx >= instructions.length) {
+    halted = true;
+    return;
+  }
+  const inst = instructions[idx];
+  cycles++;
+  document.getElementById("cycleCount").innerText = cycles;
+
+  const rawHex = "0x" + (inst.raw >>> 0).toString(16).toUpperCase().padStart(8, '0');
+  document.getElementById("curInstText").innerHTML =
+    `Cycle ${cycles} | PC: 0x${pc.toString(16).padStart(4,'0').toUpperCase()} | RAW: <span style="color:#f59e0b;">${rawHex}</span> | ${inst.asm}`;
+
+  // Update Control Signals
+  let rDst="-", aSrc="-", mReg="-", rWr="-", mRd="-", mWt="-", br="-", aluOp="-";
+  let opA = 0, opB = 0, res = 0, aluCtlStr = "";
+
+  if (inst.op === "R") {
+    rDst="1"; aSrc="0"; mReg="0"; rWr="1"; mRd="0"; mWt="0"; br="0"; aluOp="10";
+    opA = regs[inst.rs];
+    opB = regs[inst.rt];
+    if (inst.fn === 0x18) { res = opA * opB; aluCtlStr = "0101 (MUL)"; }
+    else if (inst.fn === 0x20) { res = opA + opB; aluCtlStr = "0010 (ADD)"; }
+    else if (inst.fn === 0x22) { res = opA - opB; aluCtlStr = "0110 (SUB)"; }
+    else if (inst.fn === 0x2A) { res = (opA < opB) ? 1 : 0; aluCtlStr = "0111 (SLT)"; }
+    if (inst.rd !== 0) regs[inst.rd] = res;
+    logMsg(`[EX] ${inst.asm} -> Result: ${res}`);
+    pc += 4;
+  } else if (inst.op === "LD") {
+    rDst="0"; aSrc="1"; mReg="1"; rWr="1"; mRd="1"; mWt="0"; br="0"; aluOp="00";
+    opA = regs[inst.rs];
+    opB = inst.imm;
+    res = opA + opB;
+    aluCtlStr = "0010 (ADD-OFFSET)";
+    const loaded = readMem32(res);
+    if (inst.rt !== 0) regs[inst.rt] = loaded;
+    logMsg(`[MEM] LD R${inst.rt} <- [0x${res.toString(16)}] = ${loaded}`);
+    pc += 4;
+  } else if (inst.op === "ST") {
+    rDst="X"; aSrc="1"; mReg="X"; rWr="0"; mRd="0"; mWt="1"; br="0"; aluOp="00";
+    opA = regs[inst.rs];
+    opB = inst.imm;
+    res = opA + opB;
+    aluCtlStr = "0010 (ADD-OFFSET)";
+    writeMem32(res, regs[inst.rt]);
+    logMsg(`[MEM] ST [0x${res.toString(16)}] <- R${inst.rt} (${regs[inst.rt]})`);
+    pc += 4;
+  } else if (inst.op === "ADDI") {
+    rDst="0"; aSrc="1"; mReg="0"; rWr="1"; mRd="0"; mWt="0"; br="0"; aluOp="00";
+    opA = regs[inst.rs];
+    opB = inst.imm;
+    res = opA + opB;
+    aluCtlStr = "0010 (ADD-IMM)";
+    if (inst.rt !== 0) regs[inst.rt] = res;
+    logMsg(`[EX] ADDI R${inst.rt} = ${res}`);
+    pc += 4;
+  } else if (inst.op === "BNE") {
+    rDst="X"; aSrc="0"; mReg="X"; rWr="0"; mRd="0"; mWt="0"; br="1"; aluOp="01";
+    opA = regs[inst.rs];
+    opB = regs[inst.rt];
+    res = opA - opB;
+    aluCtlStr = "0110 (SUB-CMP)";
+    if (opA !== opB) pc += inst.imm * 4;
+    else pc += 4;
+  } else if (inst.op === "JMP") {
+    pc = inst.target;
+  } else if (inst.op === "HLT") {
+    halted = true;
+    logMsg("[HALT] Program execution complete.");
+  }
+
+  document.getElementById("sigRegDst").innerText = rDst;
+  document.getElementById("sigALUSrc").innerText = aSrc;
+  document.getElementById("sigMemToReg").innerText = mReg;
+  document.getElementById("sigRegWrite").innerText = rWr;
+  document.getElementById("sigMemRead").innerText = mRd;
+  document.getElementById("sigMemWrite").innerText = mWt;
+  document.getElementById("sigBranch").innerText = br;
+  document.getElementById("sigALUOp").innerText = aluOp;
+
+  document.getElementById("aluA").innerText = opA;
+  document.getElementById("aluB").innerText = opB;
+  document.getElementById("aluCtl").innerText = aluCtlStr;
+  document.getElementById("aluRes").innerText = `${res} [Z=${res===0?1:0}]`;
+
+  renderRegs();
+  renderMem();
+}
+
+function runAll() {
+  while (!halted && cycles < 100) {
+    stepInstruction();
+  }
+}
+
+window.onload = function() {
+  loadPresetProgram();
+};
+</script>
+
+</body>
+</html>
