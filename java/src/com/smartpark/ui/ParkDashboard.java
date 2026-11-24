@@ -20,16 +20,18 @@ import java.util.List;
 /**
  * Modern Multi-Pane Management Console for Amusement Park Operations.
  * Features:
- * 1. Deep navy navigation sidebar.
+ * 1. Clean Left Navigation Sidebar.
  * 2. Unchanged main operational dashboard (KPIs, live booking form, ride progress bars,
  *    custom Graphics2D chart, and permanent history) with "Add to Waitlist" removed.
- * 3. Ride Management: Add/subtract rides, edit ticket price, view live bookings per ride.
- * 4. Visitor Management: Sequential boarding queue order per attraction (#1, #2...)
+ * 3. Ride Management: Prominent buttons to Add, Remove/Subtract, and Edit/Change Price
+ *    for any attraction with live booking counts.
+ * 4. Visitor Management: Sequential boarding queue sequence (#1, #2...) per attraction
  *    with "Board Next Visitor" dispatch.
- * 5. Staff Management: "Assigned Work" tracking, add/subtract staff, edit details & toggle duty status.
+ * 5. Staff Management: "Assigned Work" tracking, Add/Subtract staff, Edit details, and Toggle duty status.
  * 6. Payments & Revenue: Today's revenue, total revenue, revenue by ride, and payment history.
- * 7. Integrated 3D Park Experience: 1-click launcher for OpenGL CG Task 4.
- * 8. Cloud History: Supabase connection status, guide, and live sync.
+ * 7. CPU Simulator (COA): Direct integration with 32-bit RISC Fetch-Decode-Execute pipeline & web visualizer.
+ * 8. 3D Park Experience: Streamlined dedicated launcher for CG Task 4 (OpenGL interactive window).
+ * 9. Cloud History: Supabase connection status, guide, and live sync.
  */
 public class ParkDashboard extends JFrame {
     private final ParkService service;
@@ -48,7 +50,7 @@ public class ParkDashboard extends JFrame {
     public static final String CARD_STAFF = "STAFF";
     public static final String CARD_PAYMENTS = "PAYMENTS";
     public static final String CARD_MAINTENANCE = "MAINTENANCE";
-    public static final String CARD_REPORTS = "REPORTS";
+    public static final String CARD_CPU_SIM = "CPU_SIM";
     public static final String CARD_3D_PARK = "3D_PARK";
     public static final String CARD_CLOUD = "CLOUD";
 
@@ -138,7 +140,7 @@ public class ParkDashboard extends JFrame {
         JPanel root = new JPanel(new BorderLayout(0, 0));
         root.setBackground(new Color(245, 247, 250));
 
-        // 1. Left Navigation Sidebar (Ticket Management removed as requested)
+        // 1. Left Navigation Sidebar
         root.add(createSidebarPanel(), BorderLayout.WEST);
 
         // 2. Main Right Container (Header + CardLayout Content)
@@ -150,14 +152,14 @@ public class ParkDashboard extends JFrame {
         contentCardsPanel = new JPanel(cardLayout);
         contentCardsPanel.setOpaque(false);
 
-        // Add all distinct section views into CardLayout
+        // Add all distinct section views into CardLayout (Reports & Analytics removed as requested)
         contentCardsPanel.add(createMainDashboardCard(), CARD_DASHBOARD);
         contentCardsPanel.add(createRideManagementCard(), CARD_RIDES);
         contentCardsPanel.add(createVisitorManagementCard(), CARD_VISITORS);
         contentCardsPanel.add(createStaffManagementCard(), CARD_STAFF);
         contentCardsPanel.add(createPaymentsRevenueCard(), CARD_PAYMENTS);
         contentCardsPanel.add(createMaintenanceCard(), CARD_MAINTENANCE);
-        contentCardsPanel.add(createReportsAnalyticsCard(), CARD_REPORTS);
+        contentCardsPanel.add(createCpuSimulatorCard(), CARD_CPU_SIM);
         contentCardsPanel.add(create3DParkCard(), CARD_3D_PARK);
         contentCardsPanel.add(createCloudHistoryCard(), CARD_CLOUD);
 
@@ -169,11 +171,11 @@ public class ParkDashboard extends JFrame {
     }
 
     /**
-     * Left Navigation Sidebar Panel
+     * Left Navigation Sidebar Panel (Clean text style matching user reference)
      */
     private JPanel createSidebarPanel() {
         JPanel sidebar = new JPanel(new BorderLayout(0, 0));
-        sidebar.setPreferredSize(new Dimension(235, 880));
+        sidebar.setPreferredSize(new Dimension(230, 880));
         sidebar.setBackground(new Color(15, 27, 44)); // Deep dark navy
         sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, new Color(30, 48, 75)));
 
@@ -196,21 +198,21 @@ public class ParkDashboard extends JFrame {
         brandPanel.add(brandSubtitle);
         sidebar.add(brandPanel, BorderLayout.NORTH);
 
-        // Middle Navigation Menu Items (Ticket Management removed as requested)
+        // Middle Navigation Menu Items
         JPanel menuPanel = new JPanel();
         menuPanel.setLayout(new BoxLayout(menuPanel, BoxLayout.Y_AXIS));
         menuPanel.setOpaque(false);
         menuPanel.setBorder(new EmptyBorder(5, 12, 10, 12));
 
-        addNavItem(menuPanel, "Dashboard", CARD_DASHBOARD, "📊");
-        addNavItem(menuPanel, "Ride Management", CARD_RIDES, "🎡");
-        addNavItem(menuPanel, "Visitor Management", CARD_VISITORS, "👥");
-        addNavItem(menuPanel, "Staff Management", CARD_STAFF, "👔");
-        addNavItem(menuPanel, "Payments & Revenue", CARD_PAYMENTS, "💳");
-        addNavItem(menuPanel, "Maintenance", CARD_MAINTENANCE, "🔧");
-        addNavItem(menuPanel, "Reports & Analytics", CARD_REPORTS, "📈");
-        addNavItem(menuPanel, "3D Park Experience", CARD_3D_PARK, "🎮");
-        addNavItem(menuPanel, "Cloud History", CARD_CLOUD, "☁️");
+        addNavItem(menuPanel, "Dashboard", CARD_DASHBOARD);
+        addNavItem(menuPanel, "Ride Management", CARD_RIDES);
+        addNavItem(menuPanel, "Visitor Management", CARD_VISITORS);
+        addNavItem(menuPanel, "Staff Management", CARD_STAFF);
+        addNavItem(menuPanel, "Payments & Revenue", CARD_PAYMENTS);
+        addNavItem(menuPanel, "Maintenance", CARD_MAINTENANCE);
+        addNavItem(menuPanel, "CPU Simulator (COA)", CARD_CPU_SIM);
+        addNavItem(menuPanel, "3D Park Experience", CARD_3D_PARK);
+        addNavItem(menuPanel, "Cloud History", CARD_CLOUD);
 
         JScrollPane menuScroll = new JScrollPane(menuPanel);
         menuScroll.setOpaque(false);
@@ -233,11 +235,11 @@ public class ParkDashboard extends JFrame {
         return sidebar;
     }
 
-    private void addNavItem(JPanel container, String text, String key, String icon) {
-        JButton btn = new JButton(icon + "  " + text);
+    private void addNavItem(JPanel container, String text, String key) {
+        JButton btn = new JButton(text);
         btn.setMaximumSize(new Dimension(210, 38));
         btn.setPreferredSize(new Dimension(210, 38));
-        btn.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         btn.setForeground(new Color(175, 192, 215));
         btn.setBackground(new Color(15, 27, 44));
         btn.setHorizontalAlignment(SwingConstants.LEFT);
@@ -276,14 +278,14 @@ public class ParkDashboard extends JFrame {
             if (entry.getKey().equals(key)) {
                 b.setBackground(new Color(30, 58, 95));
                 b.setForeground(Color.WHITE);
-                b.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                b.setFont(new Font("Segoe UI", Font.BOLD, 13));
                 b.setBorder(BorderFactory.createCompoundBorder(
                         BorderFactory.createMatteBorder(0, 4, 0, 0, new Color(52, 152, 219)),
                         new EmptyBorder(8, 10, 8, 14)));
             } else {
                 b.setBackground(new Color(15, 27, 44));
                 b.setForeground(new Color(175, 192, 215));
-                b.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                b.setFont(new Font("Segoe UI", Font.PLAIN, 13));
                 b.setBorder(new EmptyBorder(8, 14, 8, 14));
             }
         }
@@ -321,7 +323,7 @@ public class ParkDashboard extends JFrame {
         right.setOpaque(false);
 
         // Quick 3D Park Launcher Button in Header (Runs Task 4)
-        JButton btnQuick3D = new JButton("🎮 Run 3D Park (CG Task 4)");
+        JButton btnQuick3D = new JButton("Run 3D Park (OpenGL Window)");
         btnQuick3D.setBackground(new Color(41, 128, 185));
         btnQuick3D.setForeground(Color.WHITE);
         btnQuick3D.setFont(new Font("Segoe UI", Font.BOLD, 11));
@@ -357,7 +359,7 @@ public class ParkDashboard extends JFrame {
 
     /**
      * CARD 1: Main Operational Dashboard
-     * 100% UNCHANGED interface & working: KPI cards, booking form (without waitlist),
+     * Unchanged interface & working: KPI cards, booking form (without waitlist),
      * ride occupancy progress bars, Graphics2D revenue chart, search & history table.
      */
     private JPanel createMainDashboardCard() {
@@ -469,7 +471,7 @@ public class ParkDashboard extends JFrame {
         c.gridx = 0; c.gridy = row++; c.gridwidth = 2;
         fields.add(preview, c);
 
-        // Action Buttons: ADD TO WAITLIST REMOVED AS REQUESTED
+        // Action Buttons: ADD TO WAITLIST REMOVED
         JPanel btnPanel = new JPanel(new GridLayout(2, 1, 6, 6));
         btnPanel.setOpaque(false);
 
@@ -641,32 +643,61 @@ public class ParkDashboard extends JFrame {
 
     /**
      * CARD 2: RIDE MANAGEMENT SECTION
-     * Requirements:
-     * - Ride names with prices.
-     * - Add or subtract any ride.
-     * - Change / update the price for any ride.
-     * - Total bookings done for each ride.
+     * Prominent top controls to Add, Remove/Subtract, and Edit Price with live booking stats.
      */
     private JPanel createRideManagementCard() {
-        JPanel p = new JPanel(new BorderLayout(0, 14));
+        JPanel p = new JPanel(new BorderLayout(0, 12));
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(16, 20, 20, 20));
 
         // Header Title
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
-        JLabel title = new JLabel("🎡 RIDE & ATTRACTION MANAGEMENT");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        JLabel title = new JLabel("RIDE & ATTRACTION MANAGEMENT");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(new Color(25, 35, 55));
-        JLabel sub = new JLabel("Manage attraction catalogue, dynamic pricing, capacity, and live bookings count.");
+        JLabel sub = new JLabel("Add or subtract attractions, change ticket prices, and monitor live bookings count for each ride.");
         sub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         sub.setForeground(new Color(110, 125, 145));
         titlePanel.add(title, BorderLayout.NORTH);
         titlePanel.add(sub, BorderLayout.SOUTH);
         p.add(titlePanel, BorderLayout.NORTH);
 
+        // Action Toolbar Placed Prominently at Top
+        JPanel actionToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 6));
+        actionToolbar.setBackground(Color.WHITE);
+        actionToolbar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 230, 238), 1),
+                new EmptyBorder(8, 12, 8, 12)));
+
+        JButton btnAddRide = new JButton("+ Add New Ride");
+        btnAddRide.setBackground(new Color(39, 174, 96));
+        btnAddRide.setForeground(Color.WHITE);
+        btnAddRide.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnAddRide.addActionListener(e -> onAddNewRideClicked());
+
+        JButton btnChangePrice = new JButton("Edit / Change Price");
+        btnChangePrice.setBackground(new Color(41, 128, 185));
+        btnChangePrice.setForeground(Color.WHITE);
+        btnChangePrice.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnChangePrice.addActionListener(e -> onChangeRidePriceClicked());
+
+        JButton btnDeleteRide = new JButton("- Remove / Subtract Ride");
+        btnDeleteRide.setBackground(new Color(192, 57, 43));
+        btnDeleteRide.setForeground(Color.WHITE);
+        btnDeleteRide.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnDeleteRide.addActionListener(e -> onRemoveRideClicked());
+
+        JButton btnRefreshRides = new JButton("Refresh Table");
+        btnRefreshRides.addActionListener(e -> refreshRideManagementTable());
+
+        actionToolbar.add(btnAddRide);
+        actionToolbar.add(btnChangePrice);
+        actionToolbar.add(btnDeleteRide);
+        actionToolbar.add(btnRefreshRides);
+
         // Rides Table Setup
-        String[] cols = {"Ride ID", "Ride Name", "Type", "Unit Price (Rs.)", "Capacity (Seats)", "Min Age", "Total Bookings Done", "Total Revenue (Rs.)"};
+        String[] cols = {"Ride ID", "Ride Name", "Category", "Unit Price (Rs.)", "Capacity (Seats)", "Min Age", "Total Bookings Done", "Total Revenue (Rs.)"};
         ridesTableModel = new DefaultTableModel(cols, 0) {
             @Override
             public boolean isCellEditable(int row, int col) { return false; }
@@ -676,41 +707,12 @@ public class ParkDashboard extends JFrame {
         ridesTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         ridesTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
 
-        JScrollPane sp = new JScrollPane(ridesTable);
-        sp.setBorder(BorderFactory.createLineBorder(new Color(225, 230, 238)));
-        p.add(sp, BorderLayout.CENTER);
+        JPanel centerArea = new JPanel(new BorderLayout(0, 8));
+        centerArea.setOpaque(false);
+        centerArea.add(actionToolbar, BorderLayout.NORTH);
+        centerArea.add(new JScrollPane(ridesTable), BorderLayout.CENTER);
 
-        // Action Toolbar
-        JPanel bottomBar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        bottomBar.setOpaque(false);
-
-        JButton btnChangePrice = new JButton("✏️ Change Price for Selected Ride");
-        btnChangePrice.setBackground(new Color(41, 128, 185));
-        btnChangePrice.setForeground(Color.WHITE);
-        btnChangePrice.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnChangePrice.addActionListener(e -> onChangeRidePriceClicked());
-
-        JButton btnAddRide = new JButton("➕ Add New Ride");
-        btnAddRide.setBackground(new Color(39, 174, 96));
-        btnAddRide.setForeground(Color.WHITE);
-        btnAddRide.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnAddRide.addActionListener(e -> onAddNewRideClicked());
-
-        JButton btnDeleteRide = new JButton("➖ Remove / Subtract Ride");
-        btnDeleteRide.setBackground(new Color(192, 57, 43));
-        btnDeleteRide.setForeground(Color.WHITE);
-        btnDeleteRide.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnDeleteRide.addActionListener(e -> onRemoveRideClicked());
-
-        JButton btnRefreshRides = new JButton("🔄 Refresh Data");
-        btnRefreshRides.addActionListener(e -> refreshRideManagementTable());
-
-        bottomBar.add(btnChangePrice);
-        bottomBar.add(btnAddRide);
-        bottomBar.add(btnDeleteRide);
-        bottomBar.add(btnRefreshRides);
-
-        p.add(bottomBar, BorderLayout.SOUTH);
+        p.add(centerArea, BorderLayout.CENTER);
         return p;
     }
 
@@ -790,7 +792,6 @@ public class ParkDashboard extends JFrame {
                 int cap = Integer.parseInt(capField.getText().trim());
                 int minAge = Integer.parseInt(minAgeField.getText().trim());
 
-                // Generate new ID (e.g. 105, 106...)
                 int maxId = 100;
                 for (Ride r : service.getRides()) {
                     if (r.getId() > maxId) maxId = r.getId();
@@ -833,7 +834,7 @@ public class ParkDashboard extends JFrame {
 
         int conf = JOptionPane.showConfirmDialog(this,
                 "Are you sure you want to remove ride '" + name + "' (ID: " + rideId + ")?\n" +
-                "Note: A minimum of 1 attraction must remain active.",
+                "Note: A minimum of 1 attraction must remain active in the park.",
                 "Confirm Delete", JOptionPane.YES_NO_OPTION);
         if (conf == JOptionPane.YES_OPTION) {
             boolean removed = service.removeRide(rideId);
@@ -865,26 +866,22 @@ public class ParkDashboard extends JFrame {
 
     /**
      * CARD 3: VISITOR MANAGEMENT SECTION
-     * Requirements:
-     * - See the sequence in which the visitor booked the ticket.
-     * - Leave / board that visitor for enjoying the ride in that exact sequence.
-     * - Queue sequence is independent per ride: e.g. Sneha is #1 in Roller Coaster,
-     *   Subhi is #1 in Go-Kart.
+     * Tracks sequence in which tickets were booked per attraction.
+     * Includes "Board Next Visitor" dispatch.
      */
     private JPanel createVisitorManagementCard() {
-        JPanel p = new JPanel(new BorderLayout(0, 14));
+        JPanel p = new JPanel(new BorderLayout(0, 12));
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(16, 20, 20, 20));
 
-        // Title & Description
         JPanel topHeader = new JPanel(new BorderLayout(10, 6));
         topHeader.setOpaque(false);
 
-        JLabel title = new JLabel("👥 VISITOR BOARDING QUEUE & SEQUENCE MANAGEMENT");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        JLabel title = new JLabel("VISITOR BOARDING QUEUE & SEQUENCE MANAGEMENT");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(new Color(25, 35, 55));
 
-        JLabel sub = new JLabel("First-Come, First-Served Boarding Dispatcher: Tracks the exact order in which visitors booked each ride.");
+        JLabel sub = new JLabel("Sequential First-Come, First-Served Boarding Dispatcher: Dispatches visitors in the exact sequence they booked.");
         sub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         sub.setForeground(new Color(110, 125, 145));
 
@@ -903,7 +900,7 @@ public class ParkDashboard extends JFrame {
         lblNextInLineInfo.setForeground(new Color(41, 128, 185));
         stationPanel.add(lblNextInLineInfo, BorderLayout.CENTER);
 
-        JButton btnBoardNext = new JButton("🚀 Board Next Visitor Group (Enjoy Ride)");
+        JButton btnBoardNext = new JButton("Board Next Visitor Group (Enjoy Ride)");
         btnBoardNext.setBackground(new Color(39, 174, 96));
         btnBoardNext.setForeground(Color.WHITE);
         btnBoardNext.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -929,7 +926,7 @@ public class ParkDashboard extends JFrame {
         txtVisitorQueueSearch.putClientProperty("JTextField.placeholderText", "Search Visitor Name / ID...");
         txtVisitorQueueSearch.addCaretListener(e -> refreshVisitorQueueView());
 
-        JButton btnRefreshQueue = new JButton("🔄 Refresh Queue");
+        JButton btnRefreshQueue = new JButton("Refresh Queue");
         btnRefreshQueue.addActionListener(e -> refreshVisitorQueueView());
 
         filterStrip.add(new JLabel("Attraction Queue:"));
@@ -955,7 +952,7 @@ public class ParkDashboard extends JFrame {
                 lbl.setFont(new Font("Segoe UI", Font.BOLD, 12));
                 String s = (val != null) ? val.toString() : "";
                 if (s.contains("#1")) {
-                    lbl.setForeground(new Color(230, 126, 34)); // Highlight 1st in line
+                    lbl.setForeground(new Color(230, 126, 34));
                 } else {
                     lbl.setForeground(new Color(50, 65, 85));
                 }
@@ -994,7 +991,6 @@ public class ParkDashboard extends JFrame {
         String selectedFilter = (String) cmbQueueRideFilter.getSelectedItem();
         String search = (txtVisitorQueueSearch != null) ? txtVisitorQueueSearch.getText().trim().toLowerCase() : "";
 
-        // Track queue order per ride
         Map<Integer, Integer> rideSeqCounters = new HashMap<>();
         Booking nextInLineBooking = null;
 
@@ -1009,13 +1005,12 @@ public class ParkDashboard extends JFrame {
 
             boolean isBoarded = service.isBoarded(b.getBookingId());
 
-            // Check filter
             boolean matchesRide = (selectedFilter == null || selectedFilter.startsWith("All") || selectedFilter.contains(rideName));
             boolean matchesSearch = (search.isEmpty() || b.getVisitorName().toLowerCase().contains(search) || String.valueOf(b.getBookingId()).contains(search));
 
             if (matchesRide && matchesSearch) {
                 String queueTurnStr = (seq == 1 && !isBoarded) ? "#1 (Next to Board)" : ("#" + seq + " in Line");
-                String statusStr = isBoarded ? "✅ BOARDED - ENJOYING RIDE" : "⏳ WAITING IN LINE";
+                String statusStr = isBoarded ? "BOARDED - ENJOYING RIDE" : "WAITING IN LINE";
 
                 visitorQueueTableModel.addRow(new Object[] {
                     queueTurnStr,
@@ -1037,7 +1032,7 @@ public class ParkDashboard extends JFrame {
         if (nextInLineBooking != null) {
             Ride r = service.findRideById(nextInLineBooking.getRideId());
             String rName = (r != null) ? r.getName() : "";
-            lblNextInLineInfo.setText("🟢 Next in Line for " + rName + ": " + nextInLineBooking.getVisitorName() +
+            lblNextInLineInfo.setText("Next in Line for " + rName + ": " + nextInLineBooking.getVisitorName() +
                     " (Group of " + nextInLineBooking.getGroupSize() + ", Booking #" + nextInLineBooking.getBookingId() + ")");
         } else {
             lblNextInLineInfo.setText("All queued visitors for this view have boarded or no active visitors in line.");
@@ -1054,7 +1049,6 @@ public class ParkDashboard extends JFrame {
             return;
         }
 
-        // Find the target ride ID
         int targetRideId = -1;
         for (Ride r : service.getRides()) {
             if (selectedFilter != null && selectedFilter.contains(r.getName())) {
@@ -1064,7 +1058,6 @@ public class ParkDashboard extends JFrame {
         }
         if (targetRideId == -1) return;
 
-        // Find first non-boarded confirmed booking in chronological order
         Booking toBoard = null;
         for (Booking b : service.getBookingHistory()) {
             if (b.getRideId() == targetRideId && b.getStatus() == BookingStatus.CONFIRMED && !service.isBoarded(b.getBookingId())) {
@@ -1093,29 +1086,61 @@ public class ParkDashboard extends JFrame {
 
     /**
      * CARD 4: STAFF MANAGEMENT SECTION
-     * Requirements:
-     * - Column changed from "Assigned Ride" to "Assigned Work".
-     * - Duty status should be changeable.
-     * - Add or subtract any staff member.
-     * - Update / edit staff details.
+     * Column "Assigned Work" tracking, Add, Remove, and Edit staff with changeable duty status.
      */
     private JPanel createStaffManagementCard() {
-        JPanel p = new JPanel(new BorderLayout(0, 14));
+        JPanel p = new JPanel(new BorderLayout(0, 12));
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(16, 20, 20, 20));
 
         // Header
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
-        JLabel title = new JLabel("👔 PARK STAFF & OPERATOR MANAGEMENT");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        JLabel title = new JLabel("PARK STAFF & OPERATOR MANAGEMENT");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(new Color(25, 35, 55));
-        JLabel sub = new JLabel("Manage park staff rosters, assigned work duties, shift schedules, and live operational status.");
+        JLabel sub = new JLabel("Manage park staff rosters, assigned work duties, shift schedules, and operational duty status.");
         sub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         sub.setForeground(new Color(110, 125, 145));
         titlePanel.add(title, BorderLayout.NORTH);
         titlePanel.add(sub, BorderLayout.SOUTH);
         p.add(titlePanel, BorderLayout.NORTH);
+
+        // Action Toolbar Prominently Placed at Top
+        JPanel actionToolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 6));
+        actionToolbar.setBackground(Color.WHITE);
+        actionToolbar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 230, 238), 1),
+                new EmptyBorder(8, 12, 8, 12)));
+
+        JButton btnAddStaff = new JButton("+ Add Staff Member");
+        btnAddStaff.setBackground(new Color(39, 174, 96));
+        btnAddStaff.setForeground(Color.WHITE);
+        btnAddStaff.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnAddStaff.addActionListener(e -> onAddStaffClicked());
+
+        JButton btnEditStaff = new JButton("Edit Staff Details");
+        btnEditStaff.setBackground(new Color(41, 128, 185));
+        btnEditStaff.setForeground(Color.WHITE);
+        btnEditStaff.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnEditStaff.addActionListener(e -> onUpdateStaffClicked());
+
+        JButton btnToggleStatus = new JButton("Toggle Duty Status (On Duty / Break / Off Duty)");
+        btnToggleStatus.setBackground(new Color(230, 126, 34));
+        btnToggleStatus.setForeground(Color.WHITE);
+        btnToggleStatus.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnToggleStatus.addActionListener(e -> onToggleStaffStatusClicked());
+
+        JButton btnRemoveStaff = new JButton("- Remove Staff Member");
+        btnRemoveStaff.setBackground(new Color(192, 57, 43));
+        btnRemoveStaff.setForeground(Color.WHITE);
+        btnRemoveStaff.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnRemoveStaff.addActionListener(e -> onRemoveStaffClicked());
+
+        actionToolbar.add(btnAddStaff);
+        actionToolbar.add(btnEditStaff);
+        actionToolbar.add(btnToggleStatus);
+        actionToolbar.add(btnRemoveStaff);
 
         // Staff Table (Column "Assigned Work" as requested)
         String[] cols = {"Staff ID", "Staff Name", "Assigned Work", "Shift Timings", "Role / Certification", "Duty Status"};
@@ -1148,41 +1173,12 @@ public class ParkDashboard extends JFrame {
             }
         });
 
-        JScrollPane sp = new JScrollPane(staffTable);
-        sp.setBorder(BorderFactory.createLineBorder(new Color(225, 230, 238)));
-        p.add(sp, BorderLayout.CENTER);
+        JPanel centerArea = new JPanel(new BorderLayout(0, 8));
+        centerArea.setOpaque(false);
+        centerArea.add(actionToolbar, BorderLayout.NORTH);
+        centerArea.add(new JScrollPane(staffTable), BorderLayout.CENTER);
 
-        // Action Buttons Strip
-        JPanel btnStrip = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        btnStrip.setOpaque(false);
-
-        JButton btnToggleStatus = new JButton("🔄 Toggle Duty Status (On Duty / Break / Off Duty)");
-        btnToggleStatus.setBackground(new Color(41, 128, 185));
-        btnToggleStatus.setForeground(Color.WHITE);
-        btnToggleStatus.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnToggleStatus.addActionListener(e -> onToggleStaffStatusClicked());
-
-        JButton btnAddStaff = new JButton("➕ Add Staff Member");
-        btnAddStaff.setBackground(new Color(39, 174, 96));
-        btnAddStaff.setForeground(Color.WHITE);
-        btnAddStaff.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnAddStaff.addActionListener(e -> onAddStaffClicked());
-
-        JButton btnEditStaff = new JButton("✏️ Update Staff Details");
-        btnEditStaff.addActionListener(e -> onUpdateStaffClicked());
-
-        JButton btnRemoveStaff = new JButton("➖ Remove Staff Member");
-        btnRemoveStaff.setBackground(new Color(192, 57, 43));
-        btnRemoveStaff.setForeground(Color.WHITE);
-        btnRemoveStaff.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnRemoveStaff.addActionListener(e -> onRemoveStaffClicked());
-
-        btnStrip.add(btnToggleStatus);
-        btnStrip.add(btnAddStaff);
-        btnStrip.add(btnEditStaff);
-        btnStrip.add(btnRemoveStaff);
-
-        p.add(btnStrip, BorderLayout.SOUTH);
+        p.add(centerArea, BorderLayout.CENTER);
         refreshStaffTable();
         return p;
     }
@@ -1302,22 +1298,16 @@ public class ParkDashboard extends JFrame {
 
     /**
      * CARD 5: PAYMENTS & REVENUE SECTION
-     * Requirements:
-     * - Today's Revenue
-     * - Total Revenue
-     * - Revenue by Ride
-     * - Payment History (Visitor Name, Ride Name booked, and Price)
      */
     private JPanel createPaymentsRevenueCard() {
         JPanel p = new JPanel(new BorderLayout(0, 14));
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(16, 20, 20, 20));
 
-        // Header Title
         JPanel titlePanel = new JPanel(new BorderLayout());
         titlePanel.setOpaque(false);
-        JLabel title = new JLabel("💳 PAYMENTS & REVENUE CONSOLE");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        JLabel title = new JLabel("PAYMENTS & REVENUE CONSOLE");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(new Color(25, 35, 55));
         JLabel sub = new JLabel("Financial auditing, per-attraction collections, and permanent payment transaction records.");
         sub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -1326,7 +1316,6 @@ public class ParkDashboard extends JFrame {
         titlePanel.add(sub, BorderLayout.SOUTH);
         p.add(titlePanel, BorderLayout.NORTH);
 
-        // Top KPI Row: Today's Revenue & Total Revenue
         JPanel kpiRow = new JPanel(new GridLayout(1, 3, 14, 0));
         kpiRow.setOpaque(false);
         kpiRow.setPreferredSize(new Dimension(1280, 75));
@@ -1339,12 +1328,10 @@ public class ParkDashboard extends JFrame {
         kpiRow.add(buildKpiCard("TOTAL RECORDED REVENUE", lblPayTotalRev, new Color(41, 128, 185)));
         kpiRow.add(buildKpiCard("TOTAL PAID TRANSACTIONS", lblPayTotalTx, new Color(39, 174, 96)));
 
-        // Split Area: Top = Revenue by Ride, Bottom = Payment History
         JPanel center = new JPanel(new BorderLayout(0, 12));
         center.setOpaque(false);
         center.add(kpiRow, BorderLayout.NORTH);
 
-        // Revenue by Ride Table
         JPanel rideRevPanel = new JPanel(new BorderLayout(0, 6));
         rideRevPanel.setBackground(Color.WHITE);
         rideRevPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -1367,7 +1354,6 @@ public class ParkDashboard extends JFrame {
         payRidesTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         rideRevPanel.add(new JScrollPane(payRidesTable), BorderLayout.CENTER);
 
-        // Payment History Table (Visitor Name, Ride Name booked, Price)
         JPanel histPanel = new JPanel(new BorderLayout(0, 6));
         histPanel.setBackground(Color.WHITE);
         histPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -1432,7 +1418,6 @@ public class ParkDashboard extends JFrame {
         }
         lblPayTotalTx.setText(String.valueOf(totalTx));
 
-        // Refresh Revenue by Ride
         payRidesTableModel.setRowCount(0);
         for (Ride r : service.getRides()) {
             int bookings = service.getBookingCountForRide(r.getId());
@@ -1448,7 +1433,6 @@ public class ParkDashboard extends JFrame {
             });
         }
 
-        // Refresh Payment History
         paymentsHistoryTableModel.setRowCount(0);
         String q = (txtPaySearch != null) ? txtPaySearch.getText().trim().toLowerCase() : "";
 
@@ -1477,7 +1461,146 @@ public class ParkDashboard extends JFrame {
     }
 
     /**
-     * CARD 6: 3D Park Experience & CG Showcase (Task 4 Runner)
+     * CARD 6: CPU SIMULATOR (COA LAB - 2310221L)
+     * Demonstrates Fetch-Decode-Execute pipeline & connects directly to web visualizer and CLI.
+     */
+    private JPanel createCpuSimulatorCard() {
+        JPanel p = new JPanel(new BorderLayout(0, 14));
+        p.setOpaque(false);
+        p.setBorder(new EmptyBorder(16, 20, 20, 20));
+
+        JPanel titlePanel = new JPanel(new BorderLayout());
+        titlePanel.setOpaque(false);
+        JLabel title = new JLabel("32-BIT RISC CPU PROCESSOR SIMULATOR (COA LAB)");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        title.setForeground(new Color(25, 35, 55));
+        JLabel sub = new JLabel("Instruction Fetch, Decode, Execute, Memory, and Writeback pipeline simulation for ticket calculations.");
+        sub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        sub.setForeground(new Color(110, 125, 145));
+        titlePanel.add(title, BorderLayout.NORTH);
+        titlePanel.add(sub, BorderLayout.SOUTH);
+        p.add(titlePanel, BorderLayout.NORTH);
+
+        // Hero Panel with direct launch actions
+        JPanel hero = new JPanel(new BorderLayout(15, 0));
+        hero.setBackground(new Color(24, 38, 64));
+        hero.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(41, 128, 185), 1),
+                new EmptyBorder(16, 20, 16, 20)));
+
+        JPanel heroLeft = new JPanel(new GridLayout(2, 1, 0, 4));
+        heroLeft.setOpaque(false);
+        JLabel heroTitle = new JLabel("Interactive CPU Pipeline Visualizer & Opcode Engine");
+        heroTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        heroTitle.setForeground(Color.WHITE);
+        JLabel heroSubtitle = new JLabel("Verifies machine opcodes MUL R3,R1,R2 (0x00221818) and LD R2,8(R11) (0x8D620008) with 1-stall hazard bubble.");
+        heroSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        heroSubtitle.setForeground(new Color(160, 185, 215));
+        heroLeft.add(heroTitle);
+        heroLeft.add(heroSubtitle);
+        hero.add(heroLeft, BorderLayout.CENTER);
+
+        JPanel btnBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 4));
+        btnBox.setOpaque(false);
+
+        JButton btnWebSim = new JButton("Open Web CPU Simulator (simulator.html)");
+        btnWebSim.setBackground(new Color(46, 204, 113));
+        btnWebSim.setForeground(Color.WHITE);
+        btnWebSim.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnWebSim.addActionListener(e -> openCpuSimulatorWeb());
+
+        JButton btnCliSim = new JButton("Run CLI Verifier (cpu_sim.exe)");
+        btnCliSim.setBackground(new Color(52, 152, 219));
+        btnCliSim.setForeground(Color.WHITE);
+        btnCliSim.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnCliSim.addActionListener(e -> runCpuSimCli());
+
+        btnBox.add(btnWebSim);
+        btnBox.add(btnCliSim);
+        hero.add(btnBox, BorderLayout.EAST);
+
+        // Center content: 5-Stage Pipeline Details
+        JPanel center = new JPanel(new BorderLayout(0, 10));
+        center.setOpaque(false);
+        center.add(hero, BorderLayout.NORTH);
+
+        JTextArea ta = new JTextArea(
+                "========================================================================================\n" +
+                "  32-BIT RISC CPU ARCHITECTURE & 5-STAGE PIPELINE (COA Task 4 Execution Trace)\n" +
+                "========================================================================================\n\n" +
+                "1. FIVE-STAGE PIPELINE MICROARCHITECTURE:\n" +
+                "   [IF] Instruction Fetch: Program Counter (PC) loads instruction from 32-bit Code ROM.\n" +
+                "   [ID] Instruction Decode: Hazard Detection Unit decodes Opcode & Register File (R0-R31).\n" +
+                "   [EX] Execute / ALU: Arithmetic unit evaluates ADD, SUB, MUL, SHR with flag updates.\n" +
+                "   [MEM] Data Memory: Load (LD) and Store (ST) read/write 64KB RAM cache.\n" +
+                "   [WB] Write Back: Forwarding unit writes results back to destination register.\n\n" +
+                "2. VERIFIED MIPS MACHINE INSTRUCTION HEX SIGNATURES:\n" +
+                "   • MUL R3, R1, R2 -> 0x00221818  (R-type: opcode=0x00, rs=1, rt=2, rd=3, funct=0x18)\n" +
+                "   • LD  R2, 8(R11) -> 0x8D620008  (I-type: opcode=0x23, rs=11, rt=2, offset=0x0008)\n\n" +
+                "3. PARK TICKET CALCULATION EXECUTION SEQUENCE:\n" +
+                "   Inst 1: LD  R1, 4(R11)     ; Load Group Size\n" +
+                "   Inst 2: LD  R2, 8(R11)     ; Load Unit Price (0x8D620008)\n" +
+                "   Inst 3: MUL R3, R1, R2     ; Multiply Base Fare (0x00221818)\n" +
+                "   Inst 4: SHR R3, R3, 1      ; Apply 50% Child Discount if applicable\n" +
+                "   Inst 5: ST  R3, 12(R11)    ; Store Total Fare into Booking Memory\n\n" +
+                "4. LOAD-USE DATA HAZARD & HARDWARE STALL MITIGATION:\n" +
+                "   Between 'LD R2, 8(R11)' and 'MUL R3, R1, R2', operand R2 is not ready in Cycle 4.\n" +
+                "   The Hazard Detection Unit automatically inserts 1 STALL BUBBLE at Cycle 4.\n" +
+                "   Forwarding Unit bypasses operand directly from MEM stage to EX stage in Cycle 5.\n" +
+                "   Metrics: 5 Instructions in 10 Clock Cycles -> CPI = 2.00, Speed-up = 2.50x.\n");
+        ta.setFont(new Font("Consolas", Font.PLAIN, 12));
+        ta.setForeground(new Color(35, 45, 65));
+        ta.setEditable(false);
+        ta.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 230, 238), 1),
+                new EmptyBorder(12, 14, 12, 14)));
+
+        center.add(new JScrollPane(ta), BorderLayout.CENTER);
+        p.add(center, BorderLayout.CENTER);
+        return p;
+    }
+
+    private void openCpuSimulatorWeb() {
+        try {
+            File rootDir = new File(".").getCanonicalFile();
+            File htmlFile;
+            if (new File(rootDir, "coa/task4_integration/simulator.html").exists()) {
+                htmlFile = new File(rootDir, "coa/task4_integration/simulator.html");
+            } else if (new File(rootDir.getParentFile(), "coa/task4_integration/simulator.html").exists()) {
+                htmlFile = new File(rootDir.getParentFile(), "coa/task4_integration/simulator.html");
+            } else {
+                htmlFile = new File("C:/Users/SNEHA/.gemini/antigravity/scratch/SmartPark_v2/coa/task4_integration/simulator.html");
+            }
+            Desktop.getDesktop().browse(htmlFile.toURI());
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Could not open browser: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void runCpuSimCli() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                File rootDir = new File(".").getCanonicalFile();
+                File coaDir;
+                if (new File(rootDir, "coa/task4_integration").exists()) {
+                    coaDir = new File(rootDir, "coa/task4_integration");
+                } else if (new File(rootDir.getParentFile(), "coa/task4_integration").exists()) {
+                    coaDir = new File(rootDir.getParentFile(), "coa/task4_integration");
+                } else {
+                    coaDir = new File("C:/Users/SNEHA/.gemini/antigravity/scratch/SmartPark_v2/coa/task4_integration");
+                }
+                ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "start", "cmd.exe", "/k", "call run.bat --verify");
+                pb.directory(coaDir);
+                pb.start();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error running CLI: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+    }
+
+    /**
+     * CARD 7: 3D PARK EXPERIENCE (CG LAB - TASK 4 ONLY)
+     * Other tasks removed as requested. Prominent OpenGL launch window button.
      */
     private JPanel create3DParkCard() {
         JPanel panel = new JPanel(new BorderLayout(0, 16));
@@ -1489,63 +1612,66 @@ public class ParkDashboard extends JFrame {
         hero.setBackground(new Color(24, 38, 64));
         hero.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(41, 128, 185), 1),
-                new EmptyBorder(18, 22, 18, 22)));
+                new EmptyBorder(20, 24, 20, 24)));
 
         JPanel heroLeft = new JPanel(new GridLayout(2, 1, 0, 4));
         heroLeft.setOpaque(false);
-        JLabel heroTitle = new JLabel("🎮 3D AMUSEMENT PARK SIMULATION (COMPUTER GRAPHICS LAB)");
-        heroTitle.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        JLabel heroTitle = new JLabel("3D AMUSEMENT PARK INTERACTIVE SIMULATION");
+        heroTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
         heroTitle.setForeground(Color.WHITE);
 
-        JLabel heroSubtitle = new JLabel("FreeGLUT 3.4 & OpenGL 4.6 Engine • Interactive Orbit Camera • Phong Illumination & Procedural Textures");
+        JLabel heroSubtitle = new JLabel("Computer Graphics Lab (2310218L) • FreeGLUT 3.4 & OpenGL 4.6 Engine • Task 4 Presentation Scene");
         heroSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         heroSubtitle.setForeground(new Color(160, 185, 215));
         heroLeft.add(heroTitle);
         heroLeft.add(heroSubtitle);
         hero.add(heroLeft, BorderLayout.CENTER);
 
-        JButton btnPrimaryLaunch = new JButton("🚀 Launch 3D Simulation (Task 4)");
+        // Prominent 1-Click Launch Button for OpenGL Window
+        JButton btnPrimaryLaunch = new JButton("🚀 Launch 3D Park (OpenGL Window)");
         btnPrimaryLaunch.setBackground(new Color(46, 204, 113));
         btnPrimaryLaunch.setForeground(Color.WHITE);
-        btnPrimaryLaunch.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnPrimaryLaunch.setFont(new Font("Segoe UI", Font.BOLD, 14));
         btnPrimaryLaunch.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnPrimaryLaunch.setBorder(new EmptyBorder(10, 18, 10, 18));
+        btnPrimaryLaunch.setBorder(new EmptyBorder(12, 22, 12, 22));
         btnPrimaryLaunch.addActionListener(e -> launchCgTask(4));
         hero.add(btnPrimaryLaunch, BorderLayout.EAST);
 
         panel.add(hero, BorderLayout.NORTH);
 
-        // Content Area: 3 Cards for CG Lab Tasks
-        JPanel cardsRow = new JPanel(new GridLayout(1, 3, 14, 0));
-        cardsRow.setOpaque(false);
-
-        cardsRow.add(buildCgTaskCard("Task 1: 2D Primitives",
-                "Bresenham & Midpoint Circle",
-                "• Integer-only Bresenham Line Drawing\n" +
-                "• Midpoint Circle Algorithm (8-way symmetry)\n" +
-                "• Architectural 2D blueprint layout\n" +
-                "• UI dashboard frame & buttons",
-                1));
-
-        cardsRow.add(buildCgTaskCard("Task 2: Transformations",
-                "Hierarchical 3D & Clipping",
-                "• Rotating Ferris Wheel with upright gondolas\n" +
-                "• Piecewise polynomial Roller Coaster\n" +
-                "• Cohen-Sutherland line clipping engine\n" +
-                "• Dual glViewport secondary revenue display",
-                2));
-
-        cardsRow.add(buildCgTaskCard("Task 3: Lighting & Textures",
-                "Phong Illumination & Textures",
-                "• Phong reflection (Ambient, Diffuse, Specular)\n" +
-                "• 4 Procedural bitmapped textures (Grass/Water)\n" +
-                "• Keyboard toggles: [L] Light, [T] Texture\n" +
-                "• Orthographic vs Perspective switch [P]",
-                3));
-
+        // Center Area: Presentation overview (other tasks removed as requested)
         JPanel centerArea = new JPanel(new BorderLayout(0, 14));
         centerArea.setOpaque(false);
-        centerArea.add(cardsRow, BorderLayout.CENTER);
+
+        JPanel detailsCard = new JPanel(new BorderLayout(0, 10));
+        detailsCard.setBackground(Color.WHITE);
+        detailsCard.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 230, 238), 1),
+                new EmptyBorder(16, 20, 16, 20)));
+
+        JLabel lblOverview = new JLabel("INTEGRATED 3D PARK ARCHITECTURE");
+        lblOverview.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblOverview.setForeground(new Color(30, 45, 65));
+        detailsCard.add(lblOverview, BorderLayout.NORTH);
+
+        JTextArea txtDetails = new JTextArea(
+                "• Unified 3D Park Scene: Features all four attractions operating simultaneously in real time.\n" +
+                "• Ferris Wheel Animation: Hierarchical matrix transformations with 8 gravitationally stabilized gondolas.\n" +
+                "• Roller Coaster: Piecewise polynomial path tracking with moving multi-car coaster train.\n" +
+                "• Water Ride & Go-Kart: Animated sinusoidal flume currents and parametric track physics.\n" +
+                "• Dynamic Illumination: Complete Phong reflection model (Ambient, Diffuse Lambertian, Specular highlights).\n" +
+                "• Procedural Textures: RAM-generated textures for emerald lawn, asphalt course, shimmering water, and concourse pavers.\n" +
+                "• Dual Viewport: 3D perspective world render alongside a 2D orthographic telemetry HUD.\n\n" +
+                "Click the green 'Launch 3D Park (OpenGL Window)' button above to start the interactive OpenGL session!");
+        txtDetails.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        txtDetails.setForeground(new Color(60, 75, 95));
+        txtDetails.setEditable(false);
+        txtDetails.setOpaque(false);
+        txtDetails.setLineWrap(true);
+        txtDetails.setWrapStyleWord(true);
+        detailsCard.add(txtDetails, BorderLayout.CENTER);
+
+        centerArea.add(detailsCard, BorderLayout.CENTER);
 
         // Bottom Controls Guide Card
         JPanel controlsCard = new JPanel(new BorderLayout(10, 8));
@@ -1554,7 +1680,7 @@ public class ParkDashboard extends JFrame {
                 BorderFactory.createLineBorder(new Color(225, 230, 238), 1),
                 new EmptyBorder(14, 18, 14, 18)));
 
-        JLabel lblCtrlTitle = new JLabel("🎮 INTERACTIVE CAMERA & VIEWPORT HOTKEYS");
+        JLabel lblCtrlTitle = new JLabel("INTERACTIVE CAMERA & VIEWPORT HOTKEYS");
         lblCtrlTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblCtrlTitle.setForeground(new Color(40, 50, 75));
         controlsCard.add(lblCtrlTitle, BorderLayout.NORTH);
@@ -1565,7 +1691,7 @@ public class ParkDashboard extends JFrame {
         hotkeysGrid.add(new JLabel("🔄 Scroll Wheel: Camera Zoom In / Out"));
         hotkeysGrid.add(new JLabel("💡 Key [L]: Toggle Dynamic Phong Lighting"));
         hotkeysGrid.add(new JLabel("🎨 Key [T]: Toggle Procedural Surface Textures"));
-        hotkeysGrid.add(new JLabel("📐 Key [P]: Toggle Perspective / Orthographic"));
+        hotkeysGrid.add(new JLabel("⏸️ Key [P]: Pause / Resume Animation"));
         hotkeysGrid.add(new JLabel("❌ Key [ESC]: Exit 3D Simulation"));
         controlsCard.add(hotkeysGrid, BorderLayout.CENTER);
 
@@ -1573,47 +1699,6 @@ public class ParkDashboard extends JFrame {
         panel.add(centerArea, BorderLayout.CENTER);
 
         return panel;
-    }
-
-    private JPanel buildCgTaskCard(String badge, String title, String bulletPoints, int taskNum) {
-        JPanel card = new JPanel(new BorderLayout(0, 10));
-        card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(225, 230, 238), 1),
-                new EmptyBorder(14, 16, 14, 16)));
-
-        JPanel top = new JPanel(new BorderLayout(0, 4));
-        top.setOpaque(false);
-        JLabel lblBadge = new JLabel(badge);
-        lblBadge.setFont(new Font("Segoe UI", Font.BOLD, 10));
-        lblBadge.setForeground(new Color(41, 128, 185));
-
-        JLabel lblTitle = new JLabel(title);
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lblTitle.setForeground(new Color(30, 40, 60));
-        top.add(lblBadge, BorderLayout.NORTH);
-        top.add(lblTitle, BorderLayout.CENTER);
-        card.add(top, BorderLayout.NORTH);
-
-        JTextArea txt = new JTextArea(bulletPoints);
-        txt.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-        txt.setForeground(new Color(80, 95, 115));
-        txt.setEditable(false);
-        txt.setOpaque(false);
-        txt.setLineWrap(true);
-        txt.setWrapStyleWord(true);
-        card.add(txt, BorderLayout.CENTER);
-
-        JButton btnLaunch = new JButton("Run Task " + taskNum);
-        btnLaunch.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        btnLaunch.setBackground(new Color(245, 248, 252));
-        btnLaunch.setForeground(new Color(41, 128, 185));
-        btnLaunch.setBorder(BorderFactory.createLineBorder(new Color(210, 225, 245), 1));
-        btnLaunch.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnLaunch.addActionListener(e -> launchCgTask(taskNum));
-        card.add(btnLaunch, BorderLayout.SOUTH);
-
-        return card;
     }
 
     /**
@@ -1632,13 +1717,7 @@ public class ParkDashboard extends JFrame {
                     cgDir = new File("C:/Users/SNEHA/.gemini/antigravity/scratch/SmartPark_v2/cg");
                 }
 
-                File taskDir;
-                switch (taskNum) {
-                    case 1: taskDir = new File(cgDir, "task1_primitives"); break;
-                    case 2: taskDir = new File(cgDir, "task2_transform_clip"); break;
-                    case 3: taskDir = new File(cgDir, "task3_texture_light"); break;
-                    case 4: default: taskDir = new File(cgDir, "task4_final_render"); break;
-                }
+                File taskDir = new File(cgDir, "task4_final_render");
 
                 ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", "call", "run.bat");
                 Map<String, String> env = pb.environment();
@@ -1647,8 +1726,8 @@ public class ParkDashboard extends JFrame {
                 pb.start();
 
                 JOptionPane.showMessageDialog(this,
-                        "Launching Computer Graphics Simulation (Task " + taskNum + ")...\n" +
-                        "The interactive FreeGLUT OpenGL window will open shortly on your screen.",
+                        "Launching 3D Amusement Park Simulation (Task 4)...\n" +
+                        "The interactive FreeGLUT OpenGL window will open on your screen.",
                         "3D Park Experience", JOptionPane.INFORMATION_MESSAGE);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this,
@@ -1659,15 +1738,15 @@ public class ParkDashboard extends JFrame {
     }
 
     /**
-     * CARD 7: Ride Maintenance & Safety Checklists
+     * CARD 8: Ride Maintenance & Safety Checklists
      */
     private JPanel createMaintenanceCard() {
         JPanel p = new JPanel(new BorderLayout(0, 14));
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(16, 20, 20, 20));
 
-        JLabel title = new JLabel("🔧 RIDE MAINTENANCE & MECHANICAL INSPECTION LOGS");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        JLabel title = new JLabel("RIDE MAINTENANCE & MECHANICAL INSPECTION LOGS");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(new Color(25, 35, 55));
         p.add(title, BorderLayout.NORTH);
 
@@ -1734,57 +1813,6 @@ public class ParkDashboard extends JFrame {
     }
 
     /**
-     * CARD 8: Reports & Footfall Analytics
-     */
-    private JPanel createReportsAnalyticsCard() {
-        JPanel p = new JPanel(new BorderLayout(0, 14));
-        p.setOpaque(false);
-        p.setBorder(new EmptyBorder(16, 20, 20, 20));
-
-        JLabel title = new JLabel("📈 FOOTFALL & PARK OPERATIONS ANALYTICS (CO1 - Task 1)");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        title.setForeground(new Color(25, 35, 55));
-        p.add(title, BorderLayout.NORTH);
-
-        JPanel center = new JPanel(new BorderLayout(0, 14));
-        center.setOpaque(false);
-
-        String[] cols = {"Hour of Day", "Footfall Count", "Occupancy Band", "Primary Attraction Demand"};
-        Object[][] data = {
-            {"09:00 - 10:00", "120 visitors", "Normal (25%)", "Family Ride (Ferris Wheel)"},
-            {"10:00 - 11:00", "240 visitors", "Moderate (50%)", "Family Ride / Go-Kart"},
-            {"11:00 - 12:00", "310 visitors", "High (65%)", "Roller Coaster"},
-            {"12:00 - 13:00", "280 visitors", "Lunch Shift (58%)", "Water Ride"},
-            {"13:00 - 14:00", "330 visitors", "High (70%)", "Water Ride / Roller Coaster"},
-            {"14:00 - 15:00", "350 visitors", "Peak Window (74%)", "All Attractions"},
-            {"15:00 - 16:00", "360 visitors", "MAX PEAK HOUR", "Roller Coaster (Sold Out)"},
-            {"16:00 - 17:00", "340 visitors", "Peak Window (72%)", "Go-Kart & Water Ride"},
-            {"17:00 - 18:00", "310 visitors", "Evening Concourse", "Ferris Wheel"},
-            {"18:00 - 19:00", "250 visitors", "Sunset Period", "Ferris Wheel (Illuminated)"},
-            {"19:00 - 20:00", "145 visitors", "Park Closure Prep", "All Rides Last Calls"}
-        };
-
-        JTable table = new JTable(new DefaultTableModel(data, cols));
-        table.setRowHeight(26);
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-
-        JScrollPane sp = new JScrollPane(table);
-        sp.setBorder(BorderFactory.createLineBorder(new Color(225, 230, 238)));
-        center.add(sp, BorderLayout.CENTER);
-
-        JPanel summary = new JPanel(new GridLayout(1, 3, 14, 0));
-        summary.setOpaque(false);
-        summary.add(buildKpiCard("TOTAL RECORDED FOOTFALL", new JLabel("3,345 Visitors"), new Color(41, 128, 185)));
-        summary.add(buildKpiCard("MAXIMUM PEAK HOUR", new JLabel("15:00 (360 Visitors)"), new Color(230, 126, 34)));
-        summary.add(buildKpiCard("CHILD CONCESSION BENEFIT", new JLabel("50% Applied"), new Color(39, 174, 96)));
-        center.add(summary, BorderLayout.SOUTH);
-
-        p.add(center, BorderLayout.CENTER);
-        return p;
-    }
-
-    /**
      * CARD 9: Cloud Synchronization & Supabase Guide
      */
     private JPanel createCloudHistoryCard() {
@@ -1792,8 +1820,8 @@ public class ParkDashboard extends JFrame {
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(16, 20, 20, 20));
 
-        JLabel title = new JLabel("☁️ SUPABASE CLOUD SYNCHRONIZATION & DEMO GUIDE");
-        title.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        JLabel title = new JLabel("SUPABASE CLOUD SYNCHRONIZATION & DEMO GUIDE");
+        title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(new Color(25, 35, 55));
         p.add(title, BorderLayout.NORTH);
 
