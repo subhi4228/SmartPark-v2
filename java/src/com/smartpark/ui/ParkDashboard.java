@@ -111,6 +111,16 @@ public class ParkDashboard extends JFrame {
     private DefaultTableModel paymentsHistoryTableModel;
     private JTextField txtPaySearch;
 
+    // Cloud History Components
+    private DefaultTableModel cloudHistoryTableModel;
+    private JTable cloudHistoryTable;
+    private TableRowSorter<DefaultTableModel> cloudHistorySorter;
+    private JTextField txtCloudSearch;
+    private JComboBox<String> cmbCloudFilter;
+    private JLabel lblCloudTotalRecords;
+    private JLabel lblCloudTotalRev;
+    private JLabel lblCloudSyncStatus;
+
     public ParkDashboard() {
         this.service = new ParkService();
         File configFile = new File("config/supabase.properties");
@@ -292,10 +302,20 @@ public class ParkDashboard extends JFrame {
         cardLayout.show(contentCardsPanel, key);
 
         // Refresh specific view data on tab selection
-        if (CARD_RIDES.equals(key)) refreshRideManagementTable();
-        else if (CARD_VISITORS.equals(key)) refreshVisitorQueueView();
-        else if (CARD_PAYMENTS.equals(key)) refreshPaymentsView();
-        else if (CARD_STAFF.equals(key)) refreshStaffTable();
+        if (CARD_DASHBOARD.equals(key)) {
+            refreshCmbRides();
+            refreshAllViews();
+        } else if (CARD_RIDES.equals(key)) {
+            refreshRideManagementTable();
+        } else if (CARD_VISITORS.equals(key)) {
+            refreshVisitorQueueView();
+        } else if (CARD_PAYMENTS.equals(key)) {
+            refreshPaymentsView();
+        } else if (CARD_STAFF.equals(key)) {
+            refreshStaffTable();
+        } else if (CARD_CLOUD.equals(key)) {
+            refreshCloudHistoryTable();
+        }
     }
 
     /**
@@ -540,9 +560,14 @@ public class ParkDashboard extends JFrame {
         JPanel top = new JPanel(new BorderLayout(10, 0));
         top.setOpaque(false);
 
-        rideCardsPanel = new JPanel(new GridLayout(2, 2, 8, 8));
+        rideCardsPanel = new JPanel(new GridLayout(0, 2, 8, 8));
         rideCardsPanel.setOpaque(false);
-        top.add(rideCardsPanel, BorderLayout.CENTER);
+        JScrollPane rideCardsScroll = new JScrollPane(rideCardsPanel);
+        rideCardsScroll.setBorder(null);
+        rideCardsScroll.setOpaque(false);
+        rideCardsScroll.getViewport().setOpaque(false);
+        rideCardsScroll.setPreferredSize(new Dimension(520, 165));
+        top.add(rideCardsScroll, BorderLayout.CENTER);
 
         chartPanel = new RevenueChartPanel(service);
         top.add(chartPanel, BorderLayout.EAST);
@@ -691,10 +716,17 @@ public class ParkDashboard extends JFrame {
         JButton btnRefreshRides = new JButton("Refresh Table");
         btnRefreshRides.addActionListener(e -> refreshRideManagementTable());
 
+        JButton btnViewOnDash = new JButton("⬅ View on Dashboard");
+        btnViewOnDash.setBackground(new Color(52, 73, 94));
+        btnViewOnDash.setForeground(Color.WHITE);
+        btnViewOnDash.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnViewOnDash.addActionListener(e -> setActiveNavigation(CARD_DASHBOARD));
+
         actionToolbar.add(btnAddRide);
         actionToolbar.add(btnChangePrice);
         actionToolbar.add(btnDeleteRide);
         actionToolbar.add(btnRefreshRides);
+        actionToolbar.add(btnViewOnDash);
 
         // Rides Table Setup
         String[] cols = {"Ride ID", "Ride Name", "Category", "Unit Price (Rs.)", "Capacity (Seats)", "Min Age", "Total Bookings Done", "Total Revenue (Rs.)"};
@@ -810,8 +842,18 @@ public class ParkDashboard extends JFrame {
                     refreshCmbRides();
                     refreshAllViews();
                     refreshRideManagementTable();
-                    JOptionPane.showMessageDialog(this, "Attraction '" + name + "' added successfully!",
-                            "Ride Added", JOptionPane.INFORMATION_MESSAGE);
+                    int opt = JOptionPane.showOptionDialog(this,
+                            "Attraction '" + name + "' (ID: " + newId + ") added successfully!\n" +
+                            "Would you like to visit the main Dashboard now to see the new ride?",
+                            "Ride Added Successfully",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.INFORMATION_MESSAGE,
+                            null,
+                            new String[]{"Visit Dashboard", "Stay on Ride Management"},
+                            "Visit Dashboard");
+                    if (opt == JOptionPane.YES_OPTION) {
+                        setActiveNavigation(CARD_DASHBOARD);
+                    }
                 } else {
                     JOptionPane.showMessageDialog(this, "Failed to add ride. Maximum ride limit (10) reached.",
                             "Limit Reached", JOptionPane.WARNING_MESSAGE);
@@ -1813,66 +1855,262 @@ public class ParkDashboard extends JFrame {
     }
 
     /**
-     * CARD 9: Cloud Synchronization & Supabase Guide
+     * CARD 9: Cloud-Synced Park Transaction History & Permanent Ledger
      */
     private JPanel createCloudHistoryCard() {
         JPanel p = new JPanel(new BorderLayout(0, 14));
         p.setOpaque(false);
         p.setBorder(new EmptyBorder(16, 20, 20, 20));
 
-        JLabel title = new JLabel("SUPABASE CLOUD SYNCHRONIZATION & DEMO GUIDE");
+        // Header Title
+        JPanel topHeader = new JPanel(new BorderLayout());
+        topHeader.setOpaque(false);
+        JLabel title = new JLabel("PERMANENT CLOUD HISTORY & AUDIT LEDGER");
         title.setFont(new Font("Segoe UI", Font.BOLD, 18));
         title.setForeground(new Color(25, 35, 55));
-        p.add(title, BorderLayout.NORTH);
+        JLabel subtitle = new JLabel("Synchronized cloud audit trail backed by Supabase PostgreSQL database");
+        subtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        subtitle.setForeground(new Color(110, 120, 135));
+        topHeader.add(title, BorderLayout.NORTH);
+        topHeader.add(subtitle, BorderLayout.SOUTH);
+        p.add(topHeader, BorderLayout.NORTH);
 
-        JPanel content = new JPanel(new BorderLayout(0, 14));
-        content.setBackground(Color.WHITE);
-        content.setBorder(BorderFactory.createCompoundBorder(
+        JPanel centerPanel = new JPanel(new BorderLayout(0, 12));
+        centerPanel.setOpaque(false);
+
+        // Top 4 Metrics Cards
+        JPanel metricsPanel = new JPanel(new GridLayout(1, 4, 12, 0));
+        metricsPanel.setOpaque(false);
+        metricsPanel.setPreferredSize(new Dimension(1000, 75));
+
+        lblCloudTotalRecords = new JLabel("0");
+        lblCloudTotalRev = new JLabel("Rs. 0");
+        lblCloudSyncStatus = new JLabel(dbClient != null && dbClient.isConfigured() ? "ONLINE (Supabase)" : "LOCAL AUDIT CACHE");
+        JLabel lblCloudSecurity = new JLabel("IMMUTABLE AUDIT");
+
+        metricsPanel.add(createMiniMetricCard("Total Cloud Records", lblCloudTotalRecords, new Color(41, 128, 185)));
+        metricsPanel.add(createMiniMetricCard("Total Cloud Revenue", lblCloudTotalRev, new Color(39, 174, 96)));
+        metricsPanel.add(createMiniMetricCard("Cloud Sync Status", lblCloudSyncStatus,
+                (dbClient != null && dbClient.isConfigured()) ? new Color(39, 174, 96) : new Color(243, 156, 18)));
+        metricsPanel.add(createMiniMetricCard("Ledger Security", lblCloudSecurity, new Color(142, 68, 173)));
+
+        centerPanel.add(metricsPanel, BorderLayout.NORTH);
+
+        // Main Table Container
+        JPanel tableContainer = new JPanel(new BorderLayout(0, 10));
+        tableContainer.setBackground(Color.WHITE);
+        tableContainer.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(225, 230, 238), 1),
-                new EmptyBorder(18, 20, 18, 20)));
+                new EmptyBorder(14, 16, 14, 16)));
 
+        // Action Toolbar
+        JPanel actionToolbar = new JPanel(new BorderLayout(10, 0));
+        actionToolbar.setOpaque(false);
+
+        JPanel leftActions = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        leftActions.setOpaque(false);
+
+        JButton btnSyncNow = new JButton("Sync to Cloud Now");
+        btnSyncNow.setBackground(new Color(39, 174, 96));
+        btnSyncNow.setForeground(Color.WHITE);
+        btnSyncNow.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnSyncNow.addActionListener(e -> {
+            triggerCloudSync();
+            refreshCloudHistoryTable();
+        });
+
+        JButton btnExportLedger = new JButton("Export Cloud Ledger");
+        btnExportLedger.setBackground(new Color(41, 128, 185));
+        btnExportLedger.setForeground(Color.WHITE);
+        btnExportLedger.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnExportLedger.addActionListener(e -> onExportCsvClicked());
+
+        JButton btnVivaModal = new JButton("Supabase Setup & Viva Guide");
+        btnVivaModal.setBackground(new Color(52, 73, 94));
+        btnVivaModal.setForeground(Color.WHITE);
+        btnVivaModal.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnVivaModal.addActionListener(e -> showSupabaseVivaGuideDialog());
+
+        leftActions.add(btnSyncNow);
+        leftActions.add(btnExportLedger);
+        leftActions.add(btnVivaModal);
+        actionToolbar.add(leftActions, BorderLayout.WEST);
+
+        // Right Filter Controls
+        JPanel rightControls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
+        rightControls.setOpaque(false);
+
+        txtCloudSearch = new JTextField(12);
+        txtCloudSearch.putClientProperty("JTextField.placeholderText", "Search Visitor / ID...");
+        txtCloudSearch.addCaretListener(e -> filterCloudHistoryTable());
+
+        cmbCloudFilter = new JComboBox<>(new String[] {"ALL", "CONFIRMED", "CANCELLED"});
+        cmbCloudFilter.addActionListener(e -> filterCloudHistoryTable());
+
+        rightControls.add(new JLabel("Status:"));
+        rightControls.add(cmbCloudFilter);
+        rightControls.add(txtCloudSearch);
+        actionToolbar.add(rightControls, BorderLayout.EAST);
+
+        tableContainer.add(actionToolbar, BorderLayout.NORTH);
+
+        // Table Model Setup
+        String[] cols = {"Record #", "Booking ID", "Visitor Name", "Age", "Attraction Booked", "Group Size", "Total (Rs.)", "Booking Status", "Cloud Sync State", "Timestamp (UTC)"};
+        cloudHistoryTableModel = new DefaultTableModel(cols, 0) {
+            @Override
+            public boolean isCellEditable(int row, int col) { return false; }
+        };
+        cloudHistoryTable = new JTable(cloudHistoryTableModel);
+        cloudHistoryTable.setRowHeight(28);
+        cloudHistoryTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        cloudHistoryTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        cloudHistorySorter = new TableRowSorter<>(cloudHistoryTableModel);
+        cloudHistoryTable.setRowSorter(cloudHistorySorter);
+
+        // Status Renderer
+        cloudHistoryTable.getColumnModel().getColumn(7).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tbl, Object val, boolean isSel, boolean hasFocus, int row, int col) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(tbl, val, isSel, hasFocus, row, col);
+                lbl.setHorizontalAlignment(SwingConstants.CENTER);
+                String st = (val != null) ? val.toString() : "";
+                if ("CONFIRMED".equalsIgnoreCase(st)) {
+                    lbl.setBackground(new Color(235, 247, 238));
+                    lbl.setForeground(new Color(39, 174, 96));
+                } else if ("CANCELLED".equalsIgnoreCase(st)) {
+                    lbl.setBackground(new Color(253, 237, 236));
+                    lbl.setForeground(new Color(192, 57, 43));
+                } else {
+                    lbl.setBackground(Color.WHITE);
+                    lbl.setForeground(Color.DARK_GRAY);
+                }
+                lbl.setOpaque(true);
+                return lbl;
+            }
+        });
+
+        // Cloud Sync State Renderer
+        cloudHistoryTable.getColumnModel().getColumn(8).setCellRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable tbl, Object val, boolean isSel, boolean hasFocus, int row, int col) {
+                JLabel lbl = (JLabel) super.getTableCellRendererComponent(tbl, val, isSel, hasFocus, row, col);
+                lbl.setHorizontalAlignment(SwingConstants.CENTER);
+                lbl.setOpaque(true);
+                lbl.setBackground(new Color(235, 245, 255));
+                lbl.setForeground(new Color(41, 128, 185));
+                lbl.setFont(new Font("Segoe UI", Font.BOLD, 11));
+                return lbl;
+            }
+        });
+
+        tableContainer.add(new JScrollPane(cloudHistoryTable), BorderLayout.CENTER);
+        centerPanel.add(tableContainer, BorderLayout.CENTER);
+        p.add(centerPanel, BorderLayout.CENTER);
+
+        refreshCloudHistoryTable();
+        return p;
+    }
+
+    private void refreshCloudHistoryTable() {
+        if (cloudHistoryTableModel == null) return;
+        cloudHistoryTableModel.setRowCount(0);
+        int idx = 1;
+        boolean isSupabase = dbClient != null && dbClient.isConfigured();
+        for (Booking b : service.getBookingHistory()) {
+            Ride r = service.findRideById(b.getRideId());
+            String rideName = (r != null) ? r.getName() : "Ride " + b.getRideId();
+            String cloudState = isSupabase ? "SYNCED TO SUPABASE" : "LOCAL AUDIT LEDGER";
+            cloudHistoryTableModel.addRow(new Object[] {
+                idx++,
+                b.getBookingId(),
+                b.getVisitorName(),
+                b.getAge(),
+                rideName,
+                b.getGroupSize(),
+                b.getTotalAmount(),
+                b.getStatus().name(),
+                cloudState,
+                b.getCreatedAt()
+            });
+        }
+        if (lblCloudTotalRecords != null) {
+            lblCloudTotalRecords.setText(String.valueOf(service.getBookingHistory().size()));
+        }
+        if (lblCloudTotalRev != null) {
+            lblCloudTotalRev.setText("Rs. " + service.getTotalRevenue());
+        }
+        if (lblCloudSyncStatus != null) {
+            lblCloudSyncStatus.setText(isSupabase ? "ONLINE (Supabase)" : "LOCAL AUDIT CACHE");
+        }
+    }
+
+    private void filterCloudHistoryTable() {
+        if (cloudHistorySorter == null) return;
+        String text = txtCloudSearch != null ? txtCloudSearch.getText().trim() : "";
+        String status = cmbCloudFilter != null ? (String) cmbCloudFilter.getSelectedItem() : "ALL";
+
+        RowFilter<DefaultTableModel, Object> rf = new RowFilter<>() {
+            @Override
+            public boolean include(Entry<? extends DefaultTableModel, ?> entry) {
+                if (status != null && !status.equals("ALL")) {
+                    if (!entry.getStringValue(7).equalsIgnoreCase(status)) return false;
+                }
+                if (!text.isEmpty()) {
+                    String name = entry.getStringValue(2).toLowerCase();
+                    String id = entry.getStringValue(1).toLowerCase();
+                    String ride = entry.getStringValue(4).toLowerCase();
+                    String q = text.toLowerCase();
+                    return name.contains(q) || id.contains(q) || ride.contains(q);
+                }
+                return true;
+            }
+        };
+        cloudHistorySorter.setRowFilter(rf);
+    }
+
+    private void showSupabaseVivaGuideDialog() {
         JTextArea ta = new JTextArea(
                 "=== HOW TO CONNECT & DEMONSTRATE SUPABASE IN YOUR VIVA ===\n\n" +
                 "1. WHAT IS SUPABASE IN THIS PROJECT?\n" +
                 "   Supabase is a cloud-hosted PostgreSQL database with instant REST APIs.\n" +
-                "   In this project, it maintains an immutable, tamper-resistant cloud history of all bookings.\n\n" +
+                "   It maintains an immutable, tamper-resistant cloud history of all park bookings.\n\n" +
                 "2. HOW TO CONNECT (3 Simple Steps):\n" +
                 "   Step A: Go to https://supabase.com and create a free project.\n" +
-                "   Step B: In your Supabase Dashboard, click 'SQL Editor' -> paste the content from 'supabase/schema.sql' -> click RUN.\n" +
-                "           (This creates the 'bookings' and 'rides' tables with row locks and permanent status auditing).\n" +
-                "   Step C: Go to Project Settings -> API -> copy your 'Project URL' and 'anon public key'.\n" +
+                "   Step B: In your Supabase Dashboard, click 'SQL Editor' -> paste content from 'data/supabase_schema.sql' -> click RUN.\n" +
+                "   Step C: Go to Project Settings -> API -> copy your 'Project URL' and 'anon key'.\n" +
                 "           Create 'java/config/supabase.properties' with:\n" +
                 "           supabase.url=https://YOUR_PROJECT_REF.supabase.co\n" +
-                "           supabase.key=eyJhbGciOiJIUzI1NiIsInR5cCI6...\n\n" +
-                "3. HOW TO DEMONSTRATE LIVE TO THE EXAMINER:\n" +
-                "   • Demo 1 (Live Cloud Sync): The chip at the top will turn green [Cloud: Online].\n" +
-                "     Book a ticket in the Java Dashboard -> open Supabase Table Editor in your browser ->\n" +
-                "     show that the exact new booking row appeared instantly in the cloud!\n" +
-                "   • Demo 2 (Ethics & Permanent Audit Trail): Cancel a booking in the Java Dashboard.\n" +
-                "     Show in Supabase that the record is NEVER deleted (no DELETE query allowed);\n" +
-                "     instead, its status safely updates to 'CANCELLED' with UTC timestamp.\n" +
-                "   • Demo 3 (Offline Resilience): If there is no internet, the dashboard never crashes!\n" +
-                "     Bookings are cached safely in 'build/pending_offline_bookings.csv'.\n" +
-                "     Click 'Sync Cloud' when reconnected, and all offline bookings flush automatically.\n");
+                "           supabase.key=YOUR_ANON_PUBLIC_KEY\n\n" +
+                "3. LIVE DEMONSTRATION TO EXAMINER:\n" +
+                "   • Demo 1: Top badge turns [Cloud: Connected (Supabase)]. Book a ticket -> show row appearing instantly in Supabase.\n" +
+                "   • Demo 2: Cancel a booking -> show that status updates to CANCELLED in Supabase (never deleted, proving audit ethics).\n" +
+                "   • Demo 3: Offline resilience -> bookings cached locally and flushed when reconnected.\n");
         ta.setFont(new Font("Consolas", Font.PLAIN, 12));
-        ta.setForeground(new Color(40, 50, 70));
         ta.setEditable(false);
-        content.add(new JScrollPane(ta), BorderLayout.CENTER);
+        JScrollPane sp = new JScrollPane(ta);
+        sp.setPreferredSize(new Dimension(680, 360));
+        JOptionPane.showMessageDialog(this, sp, "Supabase Cloud Architecture & Viva Guide", JOptionPane.INFORMATION_MESSAGE);
+    }
 
-        JPanel btnRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        btnRow.setOpaque(false);
+    private JPanel createMiniMetricCard(String title, JLabel valueLabel, Color accentColor) {
+        JPanel card = new JPanel(new BorderLayout(0, 4));
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(225, 230, 238), 1),
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 4, 0, 0, accentColor),
+                        new EmptyBorder(8, 12, 8, 12))));
 
-        JButton btnSyncNow = new JButton("Sync Offline Queue to Cloud Now");
-        btnSyncNow.setBackground(new Color(41, 128, 185));
-        btnSyncNow.setForeground(Color.WHITE);
-        btnSyncNow.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnSyncNow.addActionListener(e -> triggerCloudSync());
-        btnRow.add(btnSyncNow);
+        JLabel lblTitle = new JLabel(title.toUpperCase());
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 10));
+        lblTitle.setForeground(new Color(110, 120, 135));
 
-        content.add(btnRow, BorderLayout.SOUTH);
-        p.add(content, BorderLayout.CENTER);
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        valueLabel.setForeground(new Color(30, 45, 65));
 
-        return p;
+        card.add(lblTitle, BorderLayout.NORTH);
+        card.add(valueLabel, BorderLayout.CENTER);
+        return card;
     }
 
     private void updateFarePreview() {
@@ -2009,6 +2247,7 @@ public class ParkDashboard extends JFrame {
         refreshRideManagementTable();
         refreshVisitorQueueView();
         refreshPaymentsView();
+        refreshCloudHistoryTable();
     }
 
     private void refreshKpis() {
@@ -2022,7 +2261,10 @@ public class ParkDashboard extends JFrame {
     private void refreshRideCards() {
         if (rideCardsPanel == null) return;
         rideCardsPanel.removeAll();
-        for (Ride r : service.getRides()) {
+        Ride[] rides = service.getRides();
+        int rows = Math.max(2, (rides.length + 1) / 2);
+        rideCardsPanel.setLayout(new GridLayout(rows, 2, 8, 8));
+        for (Ride r : rides) {
             JPanel card = new JPanel(new BorderLayout(5, 4));
             card.setBackground(Color.WHITE);
             card.setBorder(BorderFactory.createCompoundBorder(
@@ -2120,21 +2362,34 @@ public class ParkDashboard extends JFrame {
     }
 
     private void triggerCloudSync() {
+        if (!dbClient.isConfigured()) {
+            JOptionPane.showMessageDialog(this,
+                    "Supabase is not configured yet!\n\nPlease open java/config/supabase.properties and replace 'your-project-id' and 'your-anon-key' with your actual Supabase URL & anon key.\n\nUntil then, the dashboard is safely operating in Local Offline mode.",
+                    "Supabase Credentials Required", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
         supabaseStatusChip.setText(" Cloud: Syncing... ");
         supabaseStatusChip.setBackground(new Color(243, 156, 18));
         new SwingWorker<Integer, Void>() {
             @Override
             protected Integer doInBackground() {
-                return dbClient.flushPendingQueue();
+                int count = dbClient.flushPendingQueue();
+                for (Booking b : service.getBookingHistory()) {
+                    if (dbClient.syncBooking(b)) {
+                        count++;
+                    }
+                }
+                return count;
             }
             @Override
             protected void done() {
                 updateCloudChip();
+                refreshCloudHistoryTable();
                 try {
                     int n = get();
                     JOptionPane.showMessageDialog(ParkDashboard.this,
-                            "Cloud sync completed. Flushed " + n + " pending offline bookings.",
-                            "Cloud Sync", JOptionPane.INFORMATION_MESSAGE);
+                            "Cloud synchronization complete!\nSynced " + n + " record(s) to Supabase.",
+                            "Cloud Sync Successful", JOptionPane.INFORMATION_MESSAGE);
                 } catch (Exception ignored) {}
             }
         }.execute();
@@ -2175,6 +2430,19 @@ public class ParkDashboard extends JFrame {
         });
         syncTimer.start();
         updateCloudChip();
+        if (dbClient.isConfigured()) {
+            new SwingWorker<Boolean, Void>() {
+                @Override
+                protected Boolean doInBackground() {
+                    return dbClient.checkConnection();
+                }
+                @Override
+                protected void done() {
+                    updateCloudChip();
+                    refreshCloudHistoryTable();
+                }
+            }.execute();
+        }
     }
 
     public static void main(String[] args) {

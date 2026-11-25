@@ -89,7 +89,7 @@ public class RevenueChartPanel extends JPanel {
             int barH = (int) ((revenues[i] * (h - 20)) / maxRev);
             int y = h - barH + 20;
 
-            Color fill = (i == hoveredBar) ? barColors[i].brighter() : barColors[i];
+            Color fill = (i == hoveredBar) ? barColors[i % barColors.length].brighter() : barColors[i % barColors.length];
             g2.setColor(fill);
             g2.fillRoundRect(x, y, barWidth, barH, 6, 6);
 

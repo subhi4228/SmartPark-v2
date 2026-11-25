@@ -1,488 +1,895 @@
-/**
- * Smart Amusement Park - Computer Graphics Lab (CG)
- * Task 4 (CO4): Integrated 3D Amusement Park Presentation Build
- *
- * Implements:
- * 1. Interactive Orbit Camera (Mouse rotation & zoom around 3D park)
- * 2. Perspective Projection with aspect-ratio preservation
- * 3. Simultaneous real-time hierarchical animations:
- *    - Ferris Wheel with counter-rotating upright gondolas
- *    - Roller Coaster car traversing dual-rail track
- *    - Water Ride boat with wave oscillation
- *    - Go-Kart circuit racer
- * 4. Dual Viewport System:
- *    - Main 3D Park Visualization
- *    - Secondary Live Revenue Bar Chart (Clipped via Cohen-Sutherland)
- * 5. Procedural Textures & Phong Lighting (Ambient, Diffuse, Specular)
- */
+#ifdef _WIN32
+#include <windows.h>
+#endif
+#if defined(__has_include)
+  #if __has_include(<GL/freeglut.h>)
+    #include <GL/freeglut.h>
+  #elif __has_include(<GL/glut.h>)
+    #include <GL/glut.h>
+  #elif __has_include(<GLUT/glut.h>)
+    #include <GLUT/glut.h>
+  #else
+    #include <GL/freeglut.h>
+  #endif
+#else
+  #include <GL/freeglut.h>
+#endif
+#include <GL/glu.h>
+#include <cmath>
+#include <cstdlib>
+#include <cstdio>
+#include <algorithm>
+#include <cstring>
 
-#include <GL/freeglut.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <stdbool.h>
+const float PI = 3.14159265f;
 
-static int g_width = 1200;
-static int g_height = 750;
+GLuint grassTex, pathTex, waterTex, metalTex;
 
-// Camera Orbit Controls
-static float g_cam_dist = 18.0f;
-static float g_cam_pitch = 28.0f;
-static float g_cam_yaw = 0.0f;
-static int g_mouse_last_x = 0;
-static int g_mouse_last_y = 0;
-static bool g_mouse_dragging = false;
+bool lightingOn = true;
+bool texturesOn = true;
+bool animationOn = true;
 
-// Ride Animations
-static float g_wheel_angle = 0.0f;
-static float g_coaster_t = 0.0f;
-static float g_kart_x = 0.0f;
-static float g_boat_t = 0.0f;
-static bool g_paused = false;
-static bool g_lighting_on = true;
+float ferrisAngle = 0.0f;
+float boatAngle = 0.0f;
+float kartAngle = 0.0f;
+float coasterAngle = 0.0f;
 
-// Procedural Texture IDs
-static GLuint g_tex_grass;
-static GLuint g_tex_path;
-static GLuint g_tex_water;
-static GLuint g_tex_asphalt;
+int windowWidth = 1000;
+int windowHeight = 700;
 
-#define TEX_SIZE 64
+// =====================================================
+// MATERIALS AND BASIC DRAWING
+// =====================================================
 
-GLuint build_texture(int type) {
-    GLubyte img[TEX_SIZE][TEX_SIZE][3];
-    for (int i = 0; i < TEX_SIZE; i++) {
-        for (int j = 0; j < TEX_SIZE; j++) {
-            if (type == 1) { // Grass
-                int n = (i * 17 + j * 31) % 40;
-                img[i][j][0] = 30 + n / 2;
-                img[i][j][1] = 110 + n;
-                img[i][j][2] = 40 + n / 3;
-            } else if (type == 2) { // Sand / Pavers
-                int b = (i % 16 == 0 || j % 16 == 0) ? 35 : 0;
-                img[i][j][0] = 195 - b;
-                img[i][j][1] = 175 - b;
-                img[i][j][2] = 130 - b;
-            } else if (type == 3) { // Water
-                float d = sqrtf((i - 32) * (i - 32) + (j - 32) * (j - 32));
-                int w = (int)(sin(d * 0.45f) * 35.0f);
-                img[i][j][0] = 20;
-                img[i][j][1] = 115 + w;
-                img[i][j][2] = 235 + w / 2;
-            } else { // Asphalt
-                int g = (i * 29 + j * 53) % 25;
-                img[i][j][0] = 50 + g;
-                img[i][j][1] = 53 + g;
-                img[i][j][2] = 58 + g;
+void material(float r, float g, float b, float shine = 30) {
+    GLfloat d[] = {r, g, b, 1};
+    GLfloat a[] = {r * .35f, g * .35f, b * .35f, 1};
+    GLfloat s[] = {.55f, .55f, .55f, 1};
+
+    glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, d);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, a);
+    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, s);
+    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, shine);
+
+    glColor3f(r, g, b);
+}
+
+void box(float x, float y, float z,
+         float sx, float sy, float sz,
+         float r, float g, float b) {
+    glPushMatrix();
+    glTranslatef(x, y, z);
+    glScalef(sx, sy, sz);
+
+    material(r, g, b);
+    glutSolidCube(1);
+
+    glPopMatrix();
+}
+
+void sphere(float x, float y, float z,
+            float radius, float r, float g, float b) {
+    glPushMatrix();
+    glTranslatef(x, y, z);
+
+    material(r, g, b, 45);
+    glutSolidSphere(radius, 24, 16);
+
+    glPopMatrix();
+}
+
+void cylinder(float x, float y, float z,
+              float radius, float height,
+              float r, float g, float b) {
+    glPushMatrix();
+    glTranslatef(x, y, z);
+
+    material(r, g, b);
+
+    GLUquadric* q = gluNewQuadric();
+    gluQuadricNormals(q, GLU_SMOOTH);
+
+    gluDisk(q, 0, radius, 20, 1);
+    gluCylinder(q, radius, radius, height, 20, 6);
+
+    glPushMatrix();
+    glTranslatef(0, 0, height);
+    gluDisk(q, 0, radius, 20, 1);
+    glPopMatrix();
+
+    gluDeleteQuadric(q);
+    glPopMatrix();
+}
+
+void cylinderBetween(float x1, float y1, float z1,
+                     float x2, float y2, float z2,
+                     float radius) {
+    float dx = x2 - x1;
+    float dy = y2 - y1;
+    float dz = z2 - z1;
+
+    float len = sqrtf(dx * dx + dy * dy + dz * dz);
+    if (len < .001f) return;
+
+    GLUquadric* q = gluNewQuadric();
+    gluQuadricNormals(q, GLU_SMOOTH);
+
+    glPushMatrix();
+    glTranslatef(x1, y1, z1);
+
+    float ratio = dz / len;
+    ratio = std::max(-1.0f, std::min(1.0f, ratio));
+
+    float angle = acosf(ratio) * 180.0f / PI;
+    float ax = -dy;
+    float ay = dx;
+
+    if (fabsf(ax) < .0001f && fabsf(ay) < .0001f) {
+        if (dz < 0)
+            glRotatef(180, 1, 0, 0);
+    } else {
+        glRotatef(angle, ax, ay, 0);
+    }
+
+    material(.38f, .20f, .08f);
+
+    gluDisk(q, 0, radius, 14, 1);
+    gluCylinder(q, radius, radius * .78f, len, 14, 5);
+
+    glPushMatrix();
+    glTranslatef(0, 0, len);
+    gluDisk(q, 0, radius * .78f, 14, 1);
+    glPopMatrix();
+
+    glPopMatrix();
+    gluDeleteQuadric(q);
+}
+
+void line3D(float x1, float y1, float z1,
+            float x2, float y2, float z2,
+            float r, float g, float b,
+            float width = 2) {
+    glDisable(GL_TEXTURE_2D);
+
+    if (lightingOn) glDisable(GL_LIGHTING);
+
+    glColor3f(r, g, b);
+    glLineWidth(width);
+
+    glBegin(GL_LINES);
+    glVertex3f(x1, y1, z1);
+    glVertex3f(x2, y2, z2);
+    glEnd();
+
+    glLineWidth(1);
+
+    if (lightingOn) glEnable(GL_LIGHTING);
+}
+
+// =====================================================
+// PROCEDURAL TEXTURES
+// 0 = grass, 1 = stone, 2 = water, 3 = asphalt
+// =====================================================
+
+void makeTexture(GLuint& id, int type) {
+    const int N = 64;
+    GLubyte pixels[N][N][3];
+
+    srand(100 + type);
+
+    for (int y = 0; y < N; y++) {
+        for (int x = 0; x < N; x++) {
+            int n = rand() % 26;
+            int r, g, b;
+
+            if (type == 0) {
+                int blade = ((x * 7 + y * 3) % 19 < 3) ? 16 : 0;
+                r = 24 + n / 3;
+                g = 78 + n * 2 + blade;
+                b = 18 + n / 4;
+            } else if (type == 1) {
+                bool seam = (x % 16 < 2 || y % 16 < 2);
+                int shade = n / 2;
+
+                r = seam ? 70 : 125 + shade;
+                g = seam ? 67 : 119 + shade;
+                b = seam ? 61 : 105 + shade;
+            } else if (type == 2) {
+                int wave = (int)(12 * sinf(x * .22f + y * .15f));
+
+                r = 5 + n / 6;
+                g = 83 + wave + n / 2;
+                b = 155 + wave + n / 2;
+            } else {
+                int shade = n / 2;
+
+                r = 35 + shade;
+                g = 38 + shade;
+                b = 43 + shade;
             }
+
+            pixels[y][x][0] = (GLubyte)std::max(0, std::min(255, r));
+            pixels[y][x][1] = (GLubyte)std::max(0, std::min(255, g));
+            pixels[y][x][2] = (GLubyte)std::max(0, std::min(255, b));
         }
     }
-    GLuint texId;
-    glGenTextures(1, &texId);
-    glBindTexture(GL_TEXTURE_2D, texId);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
+    glGenTextures(1, &id);
+    glBindTexture(GL_TEXTURE_2D, id);
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                    GL_LINEAR_MIPMAP_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, TEX_SIZE, TEX_SIZE, 0, GL_RGB, GL_UNSIGNED_BYTE, img);
-    return texId;
+
+    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGB, N, N,
+                      GL_RGB, GL_UNSIGNED_BYTE, pixels);
 }
 
-void init_all(void) {
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-
-    GLfloat light_pos[] = { 12.0f, 22.0f, 15.0f, 1.0f };
-    GLfloat light_amb[] = { 0.28f, 0.28f, 0.28f, 1.0f };
-    GLfloat light_diff[] = { 0.95f, 0.95f, 0.95f, 1.0f };
-    GLfloat light_spec[] = { 0.70f, 0.70f, 0.70f, 1.0f };
-
-    glLightfv(GL_LIGHT0, GL_POSITION, light_pos);
-    glLightfv(GL_LIGHT0, GL_AMBIENT, light_amb);
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diff);
-    glLightfv(GL_LIGHT0, GL_SPECULAR, light_spec);
-
-    GLfloat mat_spec[] = { 0.4f, 0.4f, 0.4f, 1.0f };
-    glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, mat_spec);
-    glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, 32.0f);
-
-    glEnable(GL_LIGHT0);
-    glEnable(GL_LIGHTING);
-
-    g_tex_grass = build_texture(1);
-    g_tex_path = build_texture(2);
-    g_tex_water = build_texture(3);
-    g_tex_asphalt = build_texture(4);
+void bindTex(GLuint id) {
+    if (texturesOn) {
+        glEnable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+    } else {
+        glDisable(GL_TEXTURE_2D);
+    }
 }
 
-void draw_park_3d(void) {
-    // 1. Ground Plane (Grass)
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, g_tex_grass);
-    glColor3f(0.85f, 0.85f, 0.85f);
-    glBegin(GL_QUADS);
+// =====================================================
+// GROUND AND PATHWAYS
+// =====================================================
+
+void ground() {
+    bindTex(grassTex);
+    material(.90f, .98f, .88f);
+
     glNormal3f(0, 1, 0);
-    glTexCoord2f(0, 0);   glVertex3f(-15.0f, 0.0f, -11.0f);
-    glTexCoord2f(10, 0);  glVertex3f( 15.0f, 0.0f, -11.0f);
-    glTexCoord2f(10, 10); glVertex3f( 15.0f, 0.0f,  11.0f);
-    glTexCoord2f(0, 10);  glVertex3f(-15.0f, 0.0f,  11.0f);
+
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 0); glVertex3f(-12, 0, -12);
+    glTexCoord2f(8, 0); glVertex3f(12, 0, -12);
+    glTexCoord2f(8, 8); glVertex3f(12, 0, 12);
+    glTexCoord2f(0, 8); glVertex3f(-12, 0, 12);
     glEnd();
 
-    // 2. Sand Path Network
-    glBindTexture(GL_TEXTURE_2D, g_tex_path);
-    glColor3f(0.95f, 0.95f, 0.95f);
-    glBegin(GL_QUADS);
-    glNormal3f(0, 1, 0);
-    glTexCoord2f(0, 0); glVertex3f(-1.1f, 0.02f, -11.0f);
-    glTexCoord2f(2, 0); glVertex3f( 1.1f, 0.02f, -11.0f);
-    glTexCoord2f(2, 8); glVertex3f( 1.1f, 0.02f,  11.0f);
-    glTexCoord2f(0, 8); glVertex3f(-1.1f, 0.02f,  11.0f);
+    glDisable(GL_TEXTURE_2D);
+}
 
-    glTexCoord2f(0, 0);  glVertex3f(-15.0f, 0.02f, 2.5f);
-    glTexCoord2f(10, 0); glVertex3f( 15.0f, 0.02f, 2.5f);
-    glTexCoord2f(10, 2); glVertex3f( 15.0f, 0.02f, 4.2f);
-    glTexCoord2f(0, 2);  glVertex3f(-15.0f, 0.02f, 4.2f);
+void path(float x1, float z1, float x2, float z2, float w) {
+    float dx = x2 - x1;
+    float dz = z2 - z1;
+    float len = sqrtf(dx * dx + dz * dz);
+
+    if (len < .001f) return;
+
+    float ox = -dz / len * w / 2;
+    float oz = dx / len * w / 2;
+
+    bindTex(pathTex);
+    material(1, 1, 1);
+
+    glNormal3f(0, 1, 0);
+
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 0); glVertex3f(x1 + ox, .025f, z1 + oz);
+    glTexCoord2f(len / 2, 0); glVertex3f(x2 + ox, .025f, z2 + oz);
+    glTexCoord2f(len / 2, 2); glVertex3f(x2 - ox, .025f, z2 - oz);
+    glTexCoord2f(0, 2); glVertex3f(x1 - ox, .025f, z1 - oz);
     glEnd();
+
+    glDisable(GL_TEXTURE_2D);
+}
+
+// =====================================================
+// TREES AND PARK FURNITURE
+// Original positions preserved.
+// =====================================================
+
+void tree(float x, float z, float s = 1) {
+    glPushMatrix();
+    glTranslatef(x, 0, z);
+    glScalef(s, s, s);
+
+    cylinderBetween(0, 0, 0, 0, 2.05f, 0, .16f);
+
+    cylinderBetween(0, 1.00f, 0, -.58f, 1.62f, 0, .105f);
+    cylinderBetween(0, 1.18f, 0, .58f, 1.72f, 0, .105f);
+    cylinderBetween(0, 1.32f, 0, 0, 1.88f, -.48f, .09f);
+    cylinderBetween(0, 1.32f, 0, 0, 1.88f, .48f, .09f);
+
+    sphere(0, 2.05f, 0, .72f, .10f, .46f, .13f);
+    sphere(-.38f, 1.78f, 0, .45f, .13f, .55f, .15f);
+    sphere(.38f, 1.82f, 0, .45f, .16f, .60f, .17f);
+    sphere(0, 1.82f, -.32f, .44f, .12f, .50f, .14f);
+    sphere(0, 1.82f, .32f, .44f, .14f, .56f, .16f);
+    sphere(0, 2.48f, 0, .45f, .16f, .58f, .17f);
+
+    glPopMatrix();
+}
+
+void pine(float x, float z, float s = 1) {
+    glPushMatrix();
+    glTranslatef(x, 0, z);
+    glScalef(s, s, s);
+
+    cylinderBetween(0, 0, 0, 0, 2.65f, 0, .14f);
+
+    for (int i = 0; i < 3; i++) {
+        float y = .65f + i * .52f;
+        float radius = .88f - i * .19f;
+
+        glPushMatrix();
+        glTranslatef(0, y, 0);
+        glRotatef(-90, 1, 0, 0);
+
+        material(.04f + i * .025f, .32f + i * .07f, .15f);
+        glutSolidCone(radius, 1.3f, 20, 10);
+
+        glPopMatrix();
+    }
+
+    sphere(0, 2.48f, 0, .20f, .08f, .40f, .13f);
+
+    glPopMatrix();
+}
+
+void lamp(float x, float z) {
+    box(x, .9f, z, .1f, 1.8f, .1f, .17f, .18f, .2f);
+    box(x, 1.85f, z, .36f, .15f, .36f, 1, .85f, .4f);
+    sphere(x, 1.9f, z, .13f, 1, 1, .65f);
+}
+
+void bench(float x, float z) {
+    box(x, .55f, z, 1.2f, .12f, .38f, .48f, .22f, .1f);
+    box(x, .85f, z - .16f, 1.2f, .45f, .1f, .55f, .28f, .12f);
+
+    for (int i = -1; i <= 1; i += 2)
+        box(x + i * .45f, .25f, z, .1f, .5f, .1f,
+            .22f, .22f, .22f);
+}
+
+// =====================================================
+// ENTRANCE
+// =====================================================
+
+void entrance() {
+    box(-3, .75f, 8.2f, 1.8f, 1.5f, 1, .95f, .58f, .18f);
+    box(-3, 1.6f, 8.2f, 2, .25f, 1.15f, .82f, .18f, .12f);
+    box(-3, .9f, 7.65f, 1, .65f, .08f, .2f, .14f, .1f);
+
+    for (int x = -1; x <= 1; x += 2)
+        box(x * 1.6f, 1.9f, 8, .3f, 3.8f, .35f,
+            .85f, .17f, .15f);
+
+    box(0, 3.65f, 8, 3.5f, .38f, .4f, .12f, .22f, .42f);
+    box(0, 3.92f, 8, 3, .08f, .43f, 1, .77f, .19f);
+
+    path(0, 8, 0, 3, 2.2f);
+}
+
+// =====================================================
+// FERRIS WHEEL
+// Original centre: (-6, 4.2, -2)
+// =====================================================
+
+void ferrisWheel() {
+    const float x = -6, y = 4.2f, z = -2, r = 2;
+
+    line3D(x - 1.2f, .15f, z, x, y, z,
+           .25f, .27f, .32f, 7);
+    line3D(x + 1.2f, .15f, z, x, y, z,
+           .25f, .27f, .32f, 7);
+
+    glPushMatrix();
+    glTranslatef(x, y, z);
+    glRotatef(ferrisAngle, 0, 0, 1);
+
     glDisable(GL_TEXTURE_2D);
 
-    // 3. Entrance Ticket Booth & Arch
-    glPushMatrix();
-    glTranslatef(0, 0, 4.0f);
-    glColor3f(0.55f, 0.20f, 0.65f); // Purple booth
-    glPushMatrix(); glTranslatef(0, 1.2f, 0); glScalef(2.6f, 2.4f, 1.8f); glutSolidCube(1.0); glPopMatrix();
-    glColor3f(0.95f, 0.60f, 0.10f); // Yellow roof
-    glPushMatrix(); glTranslatef(0, 2.4f, 0); glRotatef(-90, 1, 0, 0); glutSolidCone(2.0, 1.2, 4, 1); glPopMatrix();
-    glPopMatrix();
+    material(.95f, .65f, .12f);
+    glLineWidth(5);
 
-    // 4. Ferris Wheel (101)
-    glPushMatrix();
-    glTranslatef(-6.5f, 3.5f, -2.0f);
-    glColor3f(0.20f, 0.65f, 0.90f);
-    glLineWidth(4.0f);
-    glBegin(GL_LINES);
-    glVertex3f(0,0,0); glVertex3f(-1.5f, -3.5f, 0.5f);
-    glVertex3f(0,0,0); glVertex3f( 1.5f, -3.5f, 0.5f);
-    glVertex3f(0,0,0); glVertex3f(-1.5f, -3.5f,-0.5f);
-    glVertex3f(0,0,0); glVertex3f( 1.5f, -3.5f,-0.5f);
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i < 80; i++) {
+        float a = 2 * PI * i / 80;
+        glVertex3f(r * cosf(a), r * sinf(a), 0);
+    }
     glEnd();
 
-    glRotatef(g_wheel_angle, 0, 0, 1);
-    glColor3f(0.95f, 0.45f, 0.10f);
-    glutWireTorus(0.12, 2.6, 16, 32);
+    material(.75f, .82f, .9f);
+    glLineWidth(2);
+
+    glBegin(GL_LINE_LOOP);
+    for (int i = 0; i < 80; i++) {
+        float a = 2 * PI * i / 80;
+        glVertex3f(1.78f * cosf(a), 1.78f * sinf(a), .015f);
+    }
+    glEnd();
 
     for (int i = 0; i < 8; i++) {
-        float r = i * 3.14159f / 4.0f;
-        float gx = cos(r) * 2.6f, gy = sin(r) * 2.6f;
-        glColor3f(0.95f, 0.85f, 0.10f);
-        glBegin(GL_LINES); glVertex3f(0,0,0); glVertex3f(gx, gy, 0); glEnd();
+        float a = 2 * PI * i / 8;
+        float px = r * cosf(a);
+        float py = r * sinf(a);
+
+        line3D(0, 0, 0, px, py, 0, .9f, .9f, .95f, 2);
+
         glPushMatrix();
-        glTranslatef(gx, gy, 0);
-        glRotatef(-g_wheel_angle, 0, 0, 1); // Stay upright
-        glColor3f(0.90f, 0.20f, 0.20f);
-        glScalef(0.45f, 0.38f, 0.35f);
-        glutSolidCube(1.0);
+        glTranslatef(px, py - .12f, .06f);
+        glRotatef(-ferrisAngle, 0, 0, 1);
+
+        material(.95f, (i % 2) ? .22f : .48f,
+                 (i % 3) ? .25f : .85f);
+        glScalef(1, .85f, .85f);
+        glutSolidCube(.38f);
+
+        glTranslatef(0, .22f, 0);
+        material(1, .82f, .28f);
+        glutSolidCube(.12f);
+
         glPopMatrix();
     }
+
+    glLineWidth(1);
     glPopMatrix();
 
-    // 5. Roller Coaster (102)
-    glPushMatrix();
-    glTranslatef(1.0f, 0, -4.5f);
-    float px[] = { -1.5f, 0.5f, 2.5f, 4.5f, 6.5f };
-    float py[] = { 1.5f, 4.0f, 1.8f, 3.6f, 1.2f };
-    glColor3f(0.95f, 0.65f, 0.10f);
-    glBegin(GL_LINES);
-    for (int i = 0; i < 5; i++) { glVertex3f(px[i], 0, -1); glVertex3f(px[i], py[i], -1); }
-    glEnd();
-
-    glColor3f(0.90f, 0.20f, 0.20f);
-    glBegin(GL_LINE_STRIP);
-    for (int i = 0; i < 5; i++) glVertex3f(px[i], py[i], -1);
-    glEnd();
-
-    float seg = g_coaster_t * 4.0f;
-    int idx = (int)seg;
-    float lt = seg - idx;
-    if (idx > 3) { idx = 3; lt = 1.0f; }
-    glPushMatrix();
-    glTranslatef(px[idx] + (px[idx+1] - px[idx]) * lt, py[idx] + (py[idx+1] - py[idx]) * lt + 0.3f, -1);
-    glColor3f(0.15f, 0.85f, 0.35f);
-    glScalef(0.85f, 0.45f, 0.5f);
-    glutSolidCube(1.0);
-    glPopMatrix();
-    glPopMatrix();
-
-    // 6. Water Ride (103)
-    glPushMatrix();
-    glTranslatef(6.5f, 0.05f, 2.0f);
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, g_tex_water);
-    glColor3f(0.9f, 0.9f, 1.0f);
-    glBegin(GL_QUADS);
-    glNormal3f(0, 1, 0);
-    glTexCoord2f(0, 0); glVertex3f(-1.9f, 0.05f, -1.35f);
-    glTexCoord2f(2, 0); glVertex3f( 1.9f, 0.05f, -1.35f);
-    glTexCoord2f(2, 2); glVertex3f( 1.9f, 0.05f,  1.35f);
-    glTexCoord2f(0, 2); glVertex3f(-1.9f, 0.05f,  1.35f);
-    glEnd();
-    glDisable(GL_TEXTURE_2D);
-
-    glPushMatrix();
-    glTranslatef(sin(g_boat_t) * 0.9f, 0.25f, 0);
-    glColor3f(0.95f, 0.50f, 0.10f);
-    glScalef(1.2f, 0.3f, 0.65f);
-    glutSolidCube(1.0);
-    glPopMatrix();
-    glPopMatrix();
-
-    // 7. Go-Kart (104)
-    glPushMatrix();
-    glTranslatef(-6.5f, 0.05f, 2.0f);
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, g_tex_asphalt);
-    glColor3f(0.9f, 0.9f, 0.9f);
-    glBegin(GL_QUADS);
-    glNormal3f(0, 1, 0);
-    glTexCoord2f(0, 0); glVertex3f(-2.2f, 0.05f, -1.5f);
-    glTexCoord2f(3, 0); glVertex3f( 2.2f, 0.05f, -1.5f);
-    glTexCoord2f(3, 2); glVertex3f( 2.2f, 0.05f,  1.5f);
-    glTexCoord2f(0, 2); glVertex3f(-2.2f, 0.05f,  1.5f);
-    glEnd();
-    glDisable(GL_TEXTURE_2D);
-
-    glPushMatrix();
-    glTranslatef(g_kart_x, 0.25f, 0);
-    glColor3f(0.90f, 0.15f, 0.15f);
-    glScalef(1.1f, 0.32f, 0.65f);
-    glutSolidCube(1.0);
-    glPopMatrix();
-    glPopMatrix();
-
-    // Trees
-    float tree_coords[4][3] = { {-10.5f, 0, -3.5f}, {9.5f, 0, -4.5f}, {-12.0f, 0, 5.0f}, {12.0f, 0, 5.0f} };
-    for (int i = 0; i < 4; i++) {
-        glPushMatrix();
-        glTranslatef(tree_coords[i][0], tree_coords[i][1], tree_coords[i][2]);
-        glColor3f(0.45f, 0.25f, 0.10f);
-        glPushMatrix(); glTranslatef(0, 0.8f, 0); glScalef(0.35f, 1.6f, 0.35f); glutSolidCube(1.0); glPopMatrix();
-        glColor3f(0.12f, 0.65f, 0.25f);
-        glPushMatrix(); glTranslatef(0, 2.3f, 0); glutSolidSphere(1.0, 12, 12); glPopMatrix();
-        glPopMatrix();
-    }
+    sphere(x, y, z, .30f, 1, .84f, .18f);
+    box(x, .15f, z, 2.8f, .3f, .7f, .22f, .24f, .3f);
 }
 
-// Sub-Viewport: Revenue Bar Chart (Cohen-Sutherland Clipped)
-void draw_revenue_chart(void) {
-    int vp_w = 280, vp_h = 170;
-    int vp_x = g_width - vp_w - 20, vp_y = g_height - vp_h - 20;
+// =====================================================
+// WATER RIDE
+// Original basin position preserved.
+// =====================================================
 
-    glViewport(vp_x, vp_y, vp_w, vp_h);
-    glDisable(GL_LIGHTING);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluOrtho2D(0, vp_w, 0, vp_h);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+void waterRide() {
+    box(3.8f, .12f, -2.4f,
+        5, .25f, 3.3f, .08f, .25f, .65f);
 
-    // Background Panel
-    glColor4f(0.08f, 0.12f, 0.18f, 0.90f);
+    bindTex(waterTex);
+    material(.95f, 1, 1, 80);
+    glNormal3f(0, 1, 0);
+
     glBegin(GL_QUADS);
-    glVertex2i(0, 0); glVertex2i(vp_w, 0);
-    glVertex2i(vp_w, vp_h); glVertex2i(0, vp_h);
+    glTexCoord2f(0, 0); glVertex3f(1.35f, .27f, -4);
+    glTexCoord2f(4, 0); glVertex3f(6.25f, .27f, -4);
+    glTexCoord2f(4, 3); glVertex3f(6.25f, .27f, -.8f);
+    glTexCoord2f(0, 3); glVertex3f(1.35f, .27f, -.8f);
     glEnd();
 
-    // Border Frame
-    glColor3f(0.22f, 0.74f, 0.97f);
-    glLineWidth(2.0f);
-    glBegin(GL_LINE_LOOP);
-    glVertex2i(1, 1); glVertex2i(vp_w - 1, 1);
-    glVertex2i(vp_w - 1, vp_h - 1); glVertex2i(1, vp_h - 1);
-    glEnd();
+    glDisable(GL_TEXTURE_2D);
 
-    // Bars
-    float revs[] = { 11200.0f, 18400.0f, 8900.0f, 6500.0f };
-    float colors[4][3] = { {0.2f,0.6f,0.9f}, {0.9f,0.2f,0.2f}, {0.15f,0.75f,0.45f}, {0.95f,0.6f,0.1f} };
-    float base_y = 25.0f;
-    float max_h = 105.0f;
+    // Animated ripples.
+    if (lightingOn) glDisable(GL_LIGHTING);
 
-    // Baseline
-    glColor3f(0.5f, 0.6f, 0.7f);
-    glBegin(GL_LINES);
-    glVertex2f(20.0f, base_y);
-    glVertex2f(vp_w - 20.0f, base_y);
-    glEnd();
+    glColor3f(.48f, .82f, 1);
+    glLineWidth(1.5f);
 
-    for (int i = 0; i < 4; i++) {
-        float x = 30.0f + i * 58.0f;
-        float h = (revs[i] / 20000.0f) * max_h;
-        glColor3fv(colors[i]);
-        glBegin(GL_QUADS);
-        glVertex2f(x, base_y);
-        glVertex2f(x + 36.0f, base_y);
-        glVertex2f(x + 36.0f, base_y + h);
-        glVertex2f(x, base_y + h);
+    for (int i = 0; i < 7; i++) {
+        float zz = -3.75f + i * .46f;
+        float shift = .18f * sinf((boatAngle + i * 30) * PI / 180);
+
+        glBegin(GL_LINE_STRIP);
+        for (int j = 0; j <= 20; j++) {
+            float xx = 1.65f + j * .22f;
+            float waveZ = zz + shift
+                + .035f * sinf(j * .7f + boatAngle * PI / 90);
+
+            glVertex3f(xx, .282f, waveZ);
+        }
         glEnd();
     }
+
+    glLineWidth(1);
+    if (lightingOn) glEnable(GL_LIGHTING);
+
+    box(3.8f, .35f, -4.05f, 5.2f, .35f, .18f, .95f, .78f, .23f);
+    box(3.8f, .35f, -.75f, 5.2f, .35f, .18f, .95f, .78f, .23f);
+    box(1.25f, .35f, -2.4f, .18f, .35f, 3.3f, .95f, .78f, .23f);
+    box(6.35f, .35f, -2.4f, .18f, .35f, 3.3f, .95f, .78f, .23f);
+
+    float bx = 3.8f + 1.3f * sinf(boatAngle * PI / 180);
+
+    box(bx, .6f, -2.4f, 1, .25f, .55f, 1, .42f, .08f);
+    box(bx, .78f, -2.4f, .55f, .18f, .45f, .96f, .9f, .72f);
+    sphere(bx - .18f, .95f, -2.4f, .11f, 1, .72f, .52f);
+    sphere(bx + .18f, .95f, -2.4f, .11f, 1, .72f, .52f);
 }
 
-void draw_hud(void) {
-    glDisable(GL_LIGHTING);
-    glViewport(0, 0, g_width, g_height);
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluOrtho2D(0, g_width, 0, g_height);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+// =====================================================
+// ROLLER COASTER
+// Original track curve and placement preserved.
+// =====================================================
 
-    // Title Card
-    glColor4f(0.06f, 0.09f, 0.14f, 0.85f);
-    glBegin(GL_QUADS);
-    glVertex2i(15, g_height - 75);
-    glVertex2i(480, g_height - 75);
-    glVertex2i(480, g_height - 15);
-    glVertex2i(15, g_height - 15);
+void coasterPoint(float t, float& x, float& y) {
+    x = 2 + t * .42f;
+    y = 1 + 1.4f * fabsf(sinf(t * .75f))
+          + .6f * sinf(t * 1.5f);
+}
+
+void rollerCoaster() {
+    const int N = 50;
+    const float z = 3.4f;
+    const float railOffset = .16f;
+
+    glDisable(GL_TEXTURE_2D);
+
+    // Support columns, footings and bracing.
+    for (int i = 0; i <= N; i += 5) {
+        float x, y;
+        coasterPoint(i * .22f, x, y);
+
+        box(x, .16f, z, .22f, .12f, .62f, .28f, .30f, .34f);
+
+        line3D(x, .22f, z - railOffset, x, y, z - railOffset,
+               .35f, .37f, .40f, 4);
+        line3D(x, .22f, z + railOffset, x, y, z + railOffset,
+               .35f, .37f, .40f, 4);
+
+        if (i + 5 <= N) {
+            float nx, ny;
+            coasterPoint((i + 5) * .22f, nx, ny);
+
+            line3D(x, .65f, z - railOffset,
+                   nx, .65f, z + railOffset,
+                   .55f, .58f, .62f, 2);
+        }
+    }
+
+    // Red rails.
+    glColor3f(.9f, .08f, .08f);
+    glLineWidth(6);
+
+    for (int side = -1; side <= 1; side += 2) {
+        glBegin(GL_LINE_STRIP);
+        for (int i = 0; i <= N; i++) {
+            float x, y;
+            coasterPoint(i * .22f, x, y);
+            glVertex3f(x, y, z + side * railOffset);
+        }
+        glEnd();
+    }
+
+    // Yellow cross-ties.
+    glColor3f(1, .78f, .12f);
+    glLineWidth(2);
+
+    glBegin(GL_LINES);
+    for (int i = 0; i <= N; i += 2) {
+        float x, y;
+        coasterPoint(i * .22f, x, y);
+        glVertex3f(x, y, z - railOffset);
+        glVertex3f(x, y, z + railOffset);
+    }
     glEnd();
 
-    glColor3f(0.22f, 0.74f, 0.97f);
-    glRasterPos2f(25, g_height - 35);
-    const char* title = "SMART AMUSEMENT PARK - 3D PRESENTATION SIMULATION";
-    while (*title) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *title++);
+    glLineWidth(1);
 
-    char sub[128];
-    snprintf(sub, sizeof(sub), "Orbit: Left Mouse Drag | Zoom: Right Drag | [P] %s | [L] Light %s",
-             g_paused ? "PAUSED" : "ACTIVE", g_lighting_on ? "ON" : "OFF");
-    glColor3f(0.9f, 0.9f, 0.9f);
-    glRasterPos2f(25, g_height - 58);
-    char* s = sub;
-    while (*s) glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, *s++);
+    float x, y;
+    coasterPoint(fmodf(coasterAngle, 10.78f), x, y);
+
+    box(x, y + .20f, z, .65f, .32f, .52f, .1f, .32f, .96f);
+
+    for (int i = -1; i <= 1; i += 2) {
+        sphere(x + i * .22f, y + .02f, z - .22f,
+               .09f, .12f, .12f, .14f);
+        sphere(x + i * .22f, y + .02f, z + .22f,
+               .09f, .12f, .12f, .14f);
+    }
+
+    sphere(x - .17f, y + .4f, z, .11f, 1, .78f, .55f);
+    sphere(x + .12f, y + .4f, z, .11f, 1, .78f, .55f);
 }
 
-void display(void) {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+// =====================================================
+// GO-KARTING
+// Original track footprint preserved.
+// =====================================================
 
-    // Main 3D Viewport
-    glViewport(0, 0, g_width, g_height);
+void goKarting() {
+    box(-4.5f, .08f, -7, 5.7f, .15f, 2.9f, .18f, .19f, .22f);
+
+    bindTex(metalTex);
+    material(1, 1, 1);
+    glNormal3f(0, 1, 0);
+
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 0); glVertex3f(-7.25f, .17f, -8.35f);
+    glTexCoord2f(5, 0); glVertex3f(-1.75f, .17f, -8.35f);
+    glTexCoord2f(5, 2); glVertex3f(-1.75f, .17f, -5.65f);
+    glTexCoord2f(0, 2); glVertex3f(-7.25f, .17f, -5.65f);
+    glEnd();
+
+    glDisable(GL_TEXTURE_2D);
+
+    // Yellow edge markings.
+    line3D(-7.05f, .22f, -8.12f, -1.95f, .22f, -8.12f,
+           1, .82f, .12f, 4);
+    line3D(-7.05f, .22f, -5.88f, -1.95f, .22f, -5.88f,
+           1, .82f, .12f, 4);
+
+    // White dashed centre line.
+    for (int i = 0; i < 6; i++) {
+        float x = -6.8f + i * .88f;
+
+        line3D(x, .23f, -7, x + .42f, .23f, -7,
+               .98f, .98f, .92f, 3);
+    }
+
+    float x = -4.5f + 1.8f * cosf(kartAngle * PI / 180);
+    float z = -7 + .65f * sinf(kartAngle * PI / 90);
+
+    box(x, .42f, z, .75f, .3f, .48f, .15f, .83f, .3f);
+    sphere(x, .67f, z, .16f, 1, .75f, .5f);
+
+    for (int i = -1; i <= 1; i += 2) {
+        sphere(x + i * .25f, .25f, z - .22f,
+               .12f, .08f, .08f, .08f);
+        sphere(x + i * .25f, .25f, z + .22f,
+               .12f, .08f, .08f, .08f);
+    }
+}
+
+// =====================================================
+// LIGHTING
+// =====================================================
+
+void setupLighting() {
+    GLfloat a[] = {.32f, .32f, .36f, 1};
+    GLfloat d[] = {1, .96f, .88f, 1};
+    GLfloat s[] = {.85f, .85f, .85f, 1};
+    GLfloat ga[] = {.25f, .25f, .28f, 1};
+
+    glEnable(GL_LIGHTING);
+    glEnable(GL_LIGHT0);
+    glEnable(GL_NORMALIZE);
+    glShadeModel(GL_SMOOTH);
+
+    glLightfv(GL_LIGHT0, GL_AMBIENT, a);
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, d);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, s);
+    glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ga);
+
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+}
+
+// =====================================================
+// DASHBOARD
+// =====================================================
+
+void text(float x, float y, const char* s) {
+    glRasterPos2f(x, y);
+
+    while (*s)
+        glutBitmapCharacter(GLUT_BITMAP_HELVETICA_18, *s++);
+}
+
+void overlay() {
+    glDisable(GL_LIGHTING);
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_DEPTH_TEST);
+
     glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
     glLoadIdentity();
-    gluPerspective(48.0, (double)g_width / (double)g_height, 1.0, 100.0);
+    gluOrtho2D(0, windowWidth, 0, windowHeight);
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glColor3f(.04f, .1f, .2f);
+
+    glBegin(GL_QUADS);
+    glVertex2i(0, windowHeight - 50);
+    glVertex2i(windowWidth, windowHeight - 50);
+    glVertex2i(windowWidth, windowHeight);
+    glVertex2i(0, windowHeight);
+    glEnd();
+
+    glColor3f(1, .88f, .25f);
+    text(25, windowHeight - 29, "SMART AMUSEMENT PARK - TASK 4");
+
+    glColor3f(1, 1, 1);
+    text(20, windowHeight - 76,
+         "CO4: Rendering, Texture Mapping and Transformation Precision");
+
+    text(20, windowHeight - 101,
+         "Ferris Wheel | Water Ride | Roller Coaster | Go-Karting");
+
+    glColor3f(.8f, 1, .9f);
+    text(20, 35, "L: Lighting   T: Textures   P: Pause/Resume   ESC: Exit");
+
+    glColor3f(1, .9f, .65f);
+    text(windowWidth - 185, 35, lightingOn ? "Lighting: ON" : "Lighting: OFF");
+    text(windowWidth - 185, 12, texturesOn ? "Textures: ON" : "Textures: OFF");
+
+    glPopMatrix();
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+
+    glEnable(GL_DEPTH_TEST);
+
+    if (lightingOn) {
+        glEnable(GL_LIGHTING);
+        glEnable(GL_LIGHT0);
+    }
+}
+
+// =====================================================
+// DISPLAY
+// =====================================================
+
+void display() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    // Calculate Orbit Camera Position
-    float pitch_rad = g_cam_pitch * 3.14159f / 180.0f;
-    float yaw_rad = g_cam_yaw * 3.14159f / 180.0f;
-    float cx = g_cam_dist * cosf(pitch_rad) * sinf(yaw_rad);
-    float cy = g_cam_dist * sinf(pitch_rad);
-    float cz = g_cam_dist * cosf(pitch_rad) * cosf(yaw_rad);
+    gluLookAt(15, 14, 21, 0, 1, 0, 0, 1, 0);
 
-    gluLookAt(cx, cy, cz, 0.0, 1.5, 0.0, 0.0, 1.0, 0.0);
+    GLfloat lightPosition[] = {-5, 12, 7, 1};
+    glLightfv(GL_LIGHT0, GL_POSITION, lightPosition);
 
-    if (g_lighting_on) glEnable(GL_LIGHTING);
-    else glDisable(GL_LIGHTING);
+    if (lightingOn) {
+        glEnable(GL_LIGHTING);
+        glEnable(GL_LIGHT0);
+    } else {
+        glDisable(GL_LIGHTING);
+        glDisable(GL_LIGHT0);
+    }
 
-    draw_park_3d();
-    draw_revenue_chart();
-    draw_hud();
+    ground();
+
+    path(0, 8, 0, 1, 2.2f);
+    path(0, 1, -5, 1, 1.5f);
+    path(0, 1, 4, 1, 1.5f);
+    path(-5, 1, -6, -1, 1.2f);
+    path(4, 1, 4, -1, 1.2f);
+
+    entrance();
+    ferrisWheel();
+    waterRide();
+    rollerCoaster();
+    goKarting();
+
+    // Original tree positions.
+    tree(-9, -3);
+    tree(-9, 1, .85f);
+    tree(-8.8f, 5, .9f);
+    tree(-5.5f, 6.2f, .75f);
+
+    pine(8.5f, 4);
+    pine(8.8f, 0, .85f);
+    pine(8.5f, -4.5f, .95f);
+    pine(6.8f, 6.5f, .8f);
+
+    lamp(-7.8f, 2);
+    lamp(7.5f, 2);
+    lamp(-7.8f, -5);
+    lamp(7.5f, -5);
+
+    bench(-7, -.5f);
+    bench(8.8f, -7);
+
+    overlay();
 
     glutSwapBuffers();
 }
 
-void timer_cb(int val) {
-    (void)val;
-    if (!g_paused) {
-        g_wheel_angle += 0.8f;
-        if (g_wheel_angle >= 360.0f) g_wheel_angle -= 360.0f;
+// =====================================================
+// ANIMATION
+// =====================================================
 
-        g_coaster_t += 0.008f;
-        if (g_coaster_t >= 1.0f) g_coaster_t = 0.0f;
+void update(int) {
+    if (animationOn) {
+        ferrisAngle += .5f;
+        boatAngle += 1.2f;
+        kartAngle += 2.0f;
+        coasterAngle += .025f;
 
-        static float kart_dir = 1.0f;
-        g_kart_x += 0.02f * kart_dir;
-        if (g_kart_x > 1.2f || g_kart_x < -1.2f) kart_dir = -kart_dir;
-
-        g_boat_t += 0.04f;
+        if (ferrisAngle >= 360) ferrisAngle -= 360;
+        if (boatAngle >= 360) boatAngle -= 360;
+        if (kartAngle >= 360) kartAngle -= 360;
+        if (coasterAngle >= 10.78f) coasterAngle = 0;
     }
+
     glutPostRedisplay();
-    glutTimerFunc(16, timer_cb, 0);
+    glutTimerFunc(16, update, 0);
 }
+
+// =====================================================
+// KEYBOARD CONTROLS
+// =====================================================
+
+void keyboard(unsigned char key, int, int) {
+    if (key == 'l' || key == 'L')
+        lightingOn = !lightingOn;
+
+    if (key == 't' || key == 'T')
+        texturesOn = !texturesOn;
+
+    if (key == 'p' || key == 'P')
+        animationOn = !animationOn;
+
+    if (key == 27)
+        exit(0);
+
+    glutPostRedisplay();
+}
+
+// =====================================================
+// WINDOW RESIZING
+// =====================================================
 
 void reshape(int w, int h) {
-    g_width = w; g_height = h;
+    if (h < 1) h = 1;
+    if (w < 1) w = 1;
+
+    windowWidth = w;
+    windowHeight = h;
+
+    glViewport(0, 0, w, h);
+
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(48, (float)w / (float)h, .1, 100);
+
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
 }
 
-void mouse(int button, int state, int x, int y) {
-    if (state == GLUT_DOWN) {
-        g_mouse_dragging = true;
-        g_mouse_last_x = x;
-        g_mouse_last_y = y;
-    } else {
-        g_mouse_dragging = false;
-    }
+// =====================================================
+// INITIALIZATION
+// =====================================================
+
+void init() {
+    glClearColor(.48f, .72f, .9f, 1);
+
+    glEnable(GL_DEPTH_TEST);
+    glEnable(GL_NORMALIZE);
+    glShadeModel(GL_SMOOTH);
+
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+
+    makeTexture(grassTex, 0);
+    makeTexture(pathTex, 1);
+    makeTexture(waterTex, 2);
+    makeTexture(metalTex, 3);
+
+    setupLighting();
 }
 
-void motion(int x, int y) {
-    if (g_mouse_dragging) {
-        int dx = x - g_mouse_last_x;
-        int dy = y - g_mouse_last_y;
-        g_cam_yaw += dx * 0.5f;
-        g_cam_pitch += dy * 0.5f;
-        if (g_cam_pitch > 85.0f) g_cam_pitch = 85.0f;
-        if (g_cam_pitch < 5.0f) g_cam_pitch = 5.0f;
-        g_mouse_last_x = x;
-        g_mouse_last_y = y;
-        glutPostRedisplay();
-    }
-}
-
-void keyboard(unsigned char key, int x, int y) {
-    (void)x; (void)y;
-    if (key == 27) exit(0);
-    if (key == 'p' || key == 'P') g_paused = !g_paused;
-    if (key == 'l' || key == 'L') g_lighting_on = !g_lighting_on;
-    if (key == '+' || key == '=') g_cam_dist = fmaxf(8.0f, g_cam_dist - 1.0f);
-    if (key == '-' || key == '_') g_cam_dist = fminf(35.0f, g_cam_dist + 1.0f);
-}
-
-void special(int key, int x, int y) {
-    (void)x; (void)y;
-    if (key == GLUT_KEY_UP) g_cam_pitch = fminf(85.0f, g_cam_pitch + 3.0f);
-    if (key == GLUT_KEY_DOWN) g_cam_pitch = fmaxf(5.0f, g_cam_pitch - 3.0f);
-    if (key == GLUT_KEY_LEFT) g_cam_yaw -= 4.0f;
-    if (key == GLUT_KEY_RIGHT) g_cam_yaw += 4.0f;
-    glutPostRedisplay();
-}
+// =====================================================
+// MAIN
+// =====================================================
 
 int main(int argc, char** argv) {
-    printf("=================================================================\n");
-    printf("   SMART AMUSEMENT PARK - CG TASK 4: INTEGRATED 3D PRESENTATION  \n");
-    printf("=================================================================\n");
-    printf("Controls:\n");
-    printf("  Left Mouse Drag  -> Orbit Camera (Pitch & Yaw)\n");
-    printf("  Arrow Keys       -> Rotate Camera around park\n");
-    printf("  '+' / '-'        -> Zoom In / Out\n");
-    printf("  'P' / 'p'        -> Pause / Resume Animation\n");
-    printf("  'L' / 'l'        -> Toggle Lighting ON / OFF\n");
-    printf("  ESC              -> Exit Demo\n\n");
-
     glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
-    glutInitWindowSize(g_width, g_height);
-    glutCreateWindow("Smart Amusement Park - Final 3D Interactive Simulation");
 
-    init_all();
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitWindowSize(1000, 700);
+    glutInitWindowPosition(80, 40);
+
+    glutCreateWindow("Smart Amusement Park - Task 4 CO4");
+
+    init();
 
     glutDisplayFunc(display);
     glutReshapeFunc(reshape);
-    glutMouseFunc(mouse);
-    glutMotionFunc(motion);
     glutKeyboardFunc(keyboard);
-    glutSpecialFunc(special);
-    glutTimerFunc(16, timer_cb, 0);
+    glutTimerFunc(16, update, 0);
+
+    printf("SMART AMUSEMENT PARK - TASK 4 CO4\n");
+    printf("L: Lighting | T: Textures | P: Pause/Resume | ESC: Exit\n");
 
     if (argc > 1 && strcmp(argv[1], "--test") == 0) {
-        printf("[PASS] Task 4 Final Presentation Build Rendering Cycle Verified.\n");
+        printf("[PASS] Task 4 FreeGLUT Initialization and Rendering Cycle Verified.\n");
         return 0;
     }
 
