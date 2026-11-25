@@ -163,20 +163,7 @@ This launcher allows you to execute any component across Java, DSA, COA, or CG w
 
 ---
 
-## 7. Supabase Cloud Configuration (Optional)
-The system is fully functional offline using local CSV backups. To connect to a live Supabase PostgreSQL instance:
-1. Copy `java/config/supabase.properties.example` to `java/config/supabase.properties`.
-2. Fill in your project URL and anon public key:
-   ```properties
-   supabase.url=https://your-project.supabase.co
-   supabase.key=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-   ```
-3. Execute `supabase/schema.sql` in the Supabase SQL Editor.
-4. *Security Notice: `supabase.properties` is strictly git-ignored to prevent credential leakage.*
-
----
-
-## 8. Verification & Academic Rubric Conformance
+## 7. Verification & Academic Rubric Conformance
 
 * **Automated Verification:** All tasks include `--test` and `--verify` assertion suites that exit with status 0 upon passing.
 * **Memory Safety:** Heap allocations in C are monitored via `safe_malloc` and `safe_free`; 0 bytes are leaked across all test executions.
@@ -185,7 +172,7 @@ The system is fully functional offline using local CSV backups. To connect to a 
 
 ---
 
-## 9. Authors & Academic Integrity
+## 8. Authors & Academic Integrity
 
 Developed for the Second-Year B.Tech Semester Exam Reform Evaluation at **MIT Academy of Engineering, Alandi (D), Pune**.
 * **Supervising Faculty:** Department of Computer Engineering & Software Engineering
